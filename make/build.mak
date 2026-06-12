@@ -12,6 +12,12 @@ include $(PROJ)/make/options.mak
 CC = gcc
 AR = ar
 
+# 本地编译的 C 第三方库 (3rd/build_c.sh -> 3rd/install/)
+THIRD_PREFIX = $(PROJ_3RD)/install
+THIRD_LIBS_PATH = -L$(THIRD_PREFIX)/lib
+THIRD_INCLUDE = -I$(THIRD_PREFIX)/include
+THIRD_RPATH = -Wl,-rpath,$(THIRD_PREFIX)/lib
+
 # -Wall: 显示所有警告信息
 # -gdwarf-2 -g3: 开启GDB调试时的额外信息 - 支持打印宏值
 # -O0: 不进行优化(优化: O2 O3)

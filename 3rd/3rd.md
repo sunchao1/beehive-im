@@ -6,3 +6,20 @@
 | 03 | openssl | https://github.com/openssl/openssl.git | 暂无 |
 | 04 | zlib | https://github.com/madler/zlib.git | 暂无 |
 | 05 | libcurl | https://github.com/curl/curl.git | 暂无 |
+
+## 编译
+
+依赖工具: `git`, `make`, `gcc/clang`；`cmake`(cJSON)；`autoconf automake libtool`(protobuf-c/curl)
+
+```bash
+# 仅编译 C 库 -> 3rd/install/
+cd 3rd && ./build_c.sh
+
+# 或同时拉 Go 依赖 + 编译 C 库
+cd 3rd && ./download.sh
+```
+
+编译顺序: zlib -> openssl -> cjson -> protobuf-c -> curl
+
+安装前缀: `3rd/install/`（头文件 `include/`，库文件 `lib/`）
+

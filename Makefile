@@ -23,6 +23,9 @@ export PROJ_LIB = ${PROJ}/lib
 export PROJ_LOG = ${PROJ}/log
 export PROJ_CONF = ${PROJ}/conf
 export GCC_LOG = ${PROJ_LOG}/gcc.log
+export GOPATH_ROOT = $(abspath ${PROJ}/gopath)
+export GOPATH = ${GOPATH_ROOT}
+export GO111MODULE = off
 
 # 编译目录(注：编译按顺序执行　注意库之间的依赖关系)
 CLANG_LIB_DIR = "src/clang/lib"
@@ -54,11 +57,15 @@ DIR += "$(GOLANG_EXEC_DIR)/micsvr/seqsvr"
 
 # 获取系统配置
 CPU_CORES = $(call func_cpu_cores)
+ifeq ($(CPU_CORES),)
+CPU_CORES = 4
+endif
 
 .PHONY: all clean rebuild help
 
 # 1. 编译操作
 all:
+	$(call func_gopath_setup)
 	$(call func_mkdir)
 	@for ITEM in ${DIR}; \
 	do \
@@ -67,7 +74,6 @@ all:
 		if [ $${clang} -eq 1 ]; then \
 			if [ -e $${ITEM}/Makefile ]; then \
 				cd $${ITEM}; \
-				#make -j$(CPU_CORES) 2>&1 | tee -a ${GCC_LOG}; \
 				make -j$(CPU_CORES) 2>&1 || exit; \
 				cd ${PROJ}; \
 			else \
@@ -78,7 +84,7 @@ all:
 				echo "make[1]: Entering directory '${PROJ}/$${ITEM}'"; \
 				cd $${ITEM}; \
 				echo "go build -gcflags \"-N -l\""; \
-				go build -gcflags "-N -l"; \
+				GOPATH=${GOPATH_ROOT} GO111MODULE=off go build -gcflags "-N -l"; \
 				EXEC=`basename \`pwd\``; \
 				mv $${EXEC} $${PROJ_BIN}/$${EXEC}.${VERSION}; \
 				echo "make[1]: Leaving directory '${PROJ}/$${ITEM}'"; \

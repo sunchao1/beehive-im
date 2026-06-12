@@ -12,6 +12,7 @@ INCLUDE = -I./incl \
 			-I$(PROJ)/src/clang/incl \
 			-I$(PROJ)/src/clang/incl/rtmq
 INCLUDE += $(GLOBAL_INCLUDE)
+LIBS_PATH = -L$(PROJ)/lib $(THIRD_LIBS_PATH)
 
 # 静态链接库
 STATIC_LIB_LIST = librtmq.a libutils.a libcore.a

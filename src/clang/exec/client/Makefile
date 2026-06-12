@@ -14,8 +14,7 @@ INCLUDE = -I./incl \
 			-I$(PROJ)/src/clang/incl/sdk \
 			-I$(PROJ)/../cctrl/src/incl
 INCLUDE += $(GLOBAL_INCLUDE)
-
-# 静态链接库
+LIBS_PATH = -L$(PROJ)/lib $(THIRD_LIBS_PATH)
 STATIC_LIB_LIST = libsdk.a libmesg.a libcore.a
 LIBS = $(call func_find_static_link_lib,$(STATIC_LIB_PATH),$(STATIC_LIB_LIST))
 LIBS += -lpthread -lm -dl -lcurl -lprotobuf-c -lcjson

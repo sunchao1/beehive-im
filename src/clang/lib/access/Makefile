@@ -12,7 +12,7 @@ INCLUDE = -I. \
 			-I$(PROJ)/src/clang/incl \
 			-I$(PROJ)/src/clang/incl/access
 INCLUDE += $(GLOBAL_INCLUDE)
-LIBS_PATH = -L$(PROJ)/lib
+LIBS_PATH = -L$(PROJ)/lib $(THIRD_LIBS_PATH)
 LIBS = -lpthread -lcore
 LIBS += $(SHARED_LIB)
 
