@@ -10,7 +10,11 @@ const CMD = {
 };
 
 const HEAD_SIZE = 52;
-const USRSVR = "http://127.0.0.1:8000";
+// 通过 serve-demo.sh 代理时与页面同源；直接打开 index.html 时回退到 :8000
+const USRSVR =
+  window.location.protocol === "file:"
+    ? "http://127.0.0.1:8000"
+    : window.location.origin;
 
 const state = {
   uid: 100001,

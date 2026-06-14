@@ -58,7 +58,7 @@ docker compose --profile build run --rm builder /workspace/scripts/build-linux.s
 | 现象 | 排查 |
 |------|------|
 | iplist 空 | `log/monitor.log` 是否有 websocket 注册；等 5–10s 后重试 |
-| WS 连不上 | `./scripts/status.sh`；确认 8002 映射与 `BEEHIVE_WS_IP=127.0.0.1` |
+| 页面 `Failed to fetch` | 必须用 `./scripts/serve-demo.sh` 打开（8088 代理 API）；确认 `./scripts/up-demo.sh` 已起且 8000 可访问 |
 | join 失败 / 弹幕收不到 | MySQL 种子 rid=10001；join 后 chatroom 需写入 `room:rid:zset`（已修）；`docker logs beehive-runner` |
 | frwder 拒绝 | 容器内先起 frwder 再起 Go（见 `scripts/run-in-linux.sh`） |
 

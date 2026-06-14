@@ -22,3 +22,5 @@
 ## 依赖
 
 无 CDN；`pb.js` 为内联最小 protobuf 编解码。
+
+**务必用 `./scripts/serve-demo.sh` 打开页面**（会代理 `/im/*` 到 usrsvr，避免 8088→8000 跨域导致 `Failed to fetch`）。不要直接双击 `index.html`。
