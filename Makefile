@@ -23,9 +23,8 @@ export PROJ_LIB = ${PROJ}/lib
 export PROJ_LOG = ${PROJ}/log
 export PROJ_CONF = ${PROJ}/conf
 export GCC_LOG = ${PROJ_LOG}/gcc.log
-export GOPATH_ROOT = $(abspath ${PROJ}/gopath)
-export GOPATH = ${GOPATH_ROOT}
-export GO111MODULE = off
+export GO_MOD_ROOT = $(abspath ${PROJ}/src/golang)
+export GO111MODULE = on
 
 # 编译目录(注：编译按顺序执行　注意库之间的依赖关系)
 CLANG_LIB_DIR = "src/clang/lib"
@@ -34,7 +33,6 @@ DIR += "$(CLANG_LIB_DIR)/core"
 DIR += "$(CLANG_LIB_DIR)/chat"
 DIR += "$(CLANG_LIB_DIR)/mesg"
 DIR += "$(CLANG_LIB_DIR)/rtmq"
-DIR += "$(CLANG_LIB_DIR)/utils"
 DIR += "$(CLANG_LIB_DIR)/access"
 
 CLANG_EXEC_DIR = "src/clang/exec"
@@ -43,7 +41,7 @@ DIR += "$(CLANG_EXEC_DIR)/frwder"
 DIR += "$(CLANG_EXEC_DIR)/listend"
 
 CLANG_DEMO_DIR = "src/clang/demo"
-DIR += "$(CLANG_DEMO_DIR)/websocket"
+# DIR += "$(CLANG_DEMO_DIR)/websocket"  # 依赖 libwebsockets，本地联调非必需
 
 GOLANG_EXEC_DIR = "src/golang/exec"
 DIR += "$(GOLANG_EXEC_DIR)/cross"
@@ -65,7 +63,6 @@ endif
 
 # 1. 编译操作
 all:
-	$(call func_gopath_setup)
 	$(call func_mkdir)
 	@for ITEM in ${DIR}; \
 	do \
@@ -81,13 +78,12 @@ all:
 			fi \
 		elif [ $${golang} -eq 1 ]; then \
 			if [ -e $${ITEM} ]; then \
-				echo "make[1]: Entering directory '${PROJ}/$${ITEM}'"; \
-				cd $${ITEM}; \
-				echo "go build -gcflags \"-N -l\""; \
-				GOPATH=${GOPATH_ROOT} GO111MODULE=off go build -gcflags "-N -l"; \
-				EXEC=`basename \`pwd\``; \
-				mv $${EXEC} $${PROJ_BIN}/$${EXEC}.${VERSION}; \
-				echo "make[1]: Leaving directory '${PROJ}/$${ITEM}'"; \
+				EXEC=`basename $${ITEM}`; \
+				GO_PKG=`echo $${ITEM} | sed 's|^src/golang/||'`; \
+				echo "make[1]: Entering directory '${GO_MOD_ROOT}' (build ./$${GO_PKG})"; \
+				cd ${GO_MOD_ROOT}; \
+				GO111MODULE=on go build -mod=mod -gcflags "-N -l" -o ${PROJ_BIN}/$${EXEC}.${VERSION} ./$${GO_PKG}; \
+				echo "make[1]: Leaving directory '${GO_MOD_ROOT}'"; \
 				cd ${PROJ}; \
 			else \
 				echo "Path [$${ITEM}] isn't exist!"; exit; \

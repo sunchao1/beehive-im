@@ -7,8 +7,8 @@ import (
 
 	"github.com/garyburd/redigo/redis"
 
-	"beehive-im/src/golang/lib/comm"
-	"beehive-im/src/golang/lib/im"
+	"beehive-im/lib/comm"
+	"beehive-im/lib/im"
 )
 
 /******************************************************************************

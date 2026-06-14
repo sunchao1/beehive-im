@@ -27,6 +27,15 @@ export PATH="${PREFIX}/bin:${PATH}"
 log() { echo "[3rd] $*"; }
 die() { echo "[3rd] ERROR: $*" >&2; exit 1; }
 
+check_lib() {
+    local base="$1"
+    [ -f "${PREFIX}/lib/lib${base}.a" ] \
+        || [ -f "${PREFIX}/lib64/lib${base}.a" ] \
+        || [ -f "${PREFIX}/lib/lib${base}.dylib" ] \
+        || [ -f "${PREFIX}/lib/lib${base}.so" ] \
+        || [ -f "${PREFIX}/lib64/lib${base}.so" ]
+}
+
 clone_repo() {
     local name="$1"
     local url="$2"
@@ -65,8 +74,9 @@ build_openssl() {
     fetch_tarball "openssl-${ver}" \
         "https://github.com/openssl/openssl/releases/download/openssl-${ver}/openssl-${ver}.tar.gz"
     cd "${dir}"
-    ./config --prefix="${PREFIX}" --openssldir="${PREFIX}/ssl" shared zlib
-    make -j"${JOBS}"
+    ./config --prefix="${PREFIX}" --openssldir="${PREFIX}/ssl" --libdir=lib shared zlib no-tests
+    # 并行编译 OpenSSL 3.3 在部分环境会触发 provider 链接竞态，单线程更稳
+    make build_sw
     make install_sw
     log "openssl installed"
 }
@@ -134,19 +144,14 @@ build_curl() {
         --disable-ldap \
         --disable-ldaps \
         --without-libpsl
-    make -j"${JOBS}"
-    make install
+    # 只编 libcurl，跳过 curl 命令行（避免 src/ 与跨平台缓存 .o 冲突）
+    make -j"${JOBS}" -C lib
+    make install -C lib
+    make install -C include
     log "libcurl installed"
 }
 
 verify_install() {
-    check_lib() {
-        local base="$1"
-        [ -f "${PREFIX}/lib/lib${base}.a" ] \
-            || [ -f "${PREFIX}/lib/lib${base}.dylib" ] \
-            || [ -f "${PREFIX}/lib/lib${base}.so" ]
-    }
-
     local libs="z ssl crypto cjson protobuf-c curl"
     local name
     for name in ${libs}; do
@@ -179,7 +184,7 @@ main() {
         log "skip zlib (already installed)"
     fi
 
-    if [ ! -f "${PREFIX}/lib/libssl.a" ] && [ ! -f "${PREFIX}/lib/libssl.dylib" ]; then
+    if ! check_lib ssl; then
         build_openssl
     else
         log "skip openssl (already installed)"

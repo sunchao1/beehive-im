@@ -10,10 +10,10 @@ import (
 	"github.com/garyburd/redigo/redis"
 	"github.com/golang/protobuf/proto"
 
-	"beehive-im/src/golang/lib/comm"
-	"beehive-im/src/golang/lib/mesg"
-	"beehive-im/src/golang/lib/rdb"
-	"beehive-im/src/golang/lib/rtmq"
+	"beehive-im/lib/comm"
+	"beehive-im/lib/mesg"
+	"beehive-im/lib/rdb"
+	"beehive-im/lib/rtmq"
 )
 
 type RoomCacheObj struct {

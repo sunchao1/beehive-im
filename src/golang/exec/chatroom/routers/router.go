@@ -3,7 +3,7 @@ package routers
 import (
 	"github.com/astaxie/beego"
 
-	"beehive-im/src/golang/exec/chatroom/controllers"
+	"beehive-im/exec/chatroom/controllers"
 )
 
 /* > 设置路由回调 */

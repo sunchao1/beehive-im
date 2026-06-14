@@ -4,7 +4,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"beehive-im/src/golang/lib/comm"
+	"beehive-im/lib/comm"
 )
 
 const (

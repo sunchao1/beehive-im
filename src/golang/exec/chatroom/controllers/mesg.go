@@ -12,12 +12,12 @@ import (
 	"github.com/garyburd/redigo/redis"
 	"github.com/golang/protobuf/proto"
 
-	"beehive-im/src/golang/lib/comm"
-	"beehive-im/src/golang/lib/crypt"
-	"beehive-im/src/golang/lib/mesg"
-	"beehive-im/src/golang/lib/mesg/seqsvr"
+	"beehive-im/lib/comm"
+	"beehive-im/lib/crypt"
+	"beehive-im/lib/mesg"
+	"beehive-im/lib/mesg/seqsvr"
 
-	"beehive-im/src/golang/exec/chatroom/models"
+	"beehive-im/exec/chatroom/models"
 )
 
 // 聊天室

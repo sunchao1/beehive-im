@@ -6,21 +6,21 @@ import (
 	"sync"
 	"time"
 
-	"git.apache.org/thrift.git/lib/go/thrift"
+	"github.com/apache/thrift/lib/go/thrift"
 	"github.com/astaxie/beego/logs"
 	"github.com/garyburd/redigo/redis"
 	_ "github.com/go-sql-driver/mysql"
 
-	"beehive-im/src/golang/lib/comm"
-	"beehive-im/src/golang/lib/dbase"
-	"beehive-im/src/golang/lib/log"
-	"beehive-im/src/golang/lib/mesg/seqsvr"
-	"beehive-im/src/golang/lib/mongo"
-	"beehive-im/src/golang/lib/rdb"
-	"beehive-im/src/golang/lib/rtmq"
-	"beehive-im/src/golang/lib/thrift_pool"
+	"beehive-im/lib/comm"
+	"beehive-im/lib/dbase"
+	"beehive-im/lib/log"
+	"beehive-im/lib/mesg/seqsvr"
+	"beehive-im/lib/mongo"
+	"beehive-im/lib/rdb"
+	"beehive-im/lib/rtmq"
+	"beehive-im/lib/thrift_pool"
 
-	"beehive-im/src/golang/exec/usrsvr/controllers/conf"
+	"beehive-im/exec/usrsvr/controllers/conf"
 )
 
 /* 侦听层字典 */

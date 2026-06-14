@@ -3,8 +3,8 @@ package controllers
 import (
 	"github.com/golang/protobuf/proto"
 
-	"beehive-im/src/golang/lib/comm"
-	"beehive-im/src/golang/lib/mesg"
+	"beehive-im/lib/comm"
+	"beehive-im/lib/mesg"
 )
 
 /******************************************************************************

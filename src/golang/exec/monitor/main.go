@@ -8,8 +8,8 @@ import (
 	"runtime"
 	"syscall"
 
-	"beehive-im/src/golang/exec/monitor/controllers"
-	"beehive-im/src/golang/exec/monitor/controllers/conf"
+	"beehive-im/exec/monitor/controllers"
+	"beehive-im/exec/monitor/controllers/conf"
 )
 
 /* 输入参数 */

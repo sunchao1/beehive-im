@@ -6,8 +6,8 @@ import (
 	"math/rand"
 	"time"
 
-	"beehive-im/src/golang/lib/comm"
-	"beehive-im/src/golang/lib/crypt"
+	"beehive-im/lib/comm"
+	"beehive-im/lib/crypt"
 )
 
 type UsrSvrIplistCtrl struct {

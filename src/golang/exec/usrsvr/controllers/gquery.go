@@ -3,7 +3,7 @@ package controllers
 import (
 	"fmt"
 
-	"beehive-im/src/golang/lib/comm"
+	"beehive-im/lib/comm"
 )
 
 type UsrSvrGroupQueryCtrl struct {

@@ -3,8 +3,8 @@ package controllers
 import (
 	"errors"
 
-	"beehive-im/src/golang/lib/comm"
-	"beehive-im/src/golang/lib/mesg/seqsvr"
+	"beehive-im/lib/comm"
+	"beehive-im/lib/mesg/seqsvr"
 )
 
 /* 注册处理 */

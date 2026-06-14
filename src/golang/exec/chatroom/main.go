@@ -7,9 +7,9 @@ import (
 
 	"github.com/astaxie/beego"
 
-	"beehive-im/src/golang/exec/chatroom/controllers"
-	"beehive-im/src/golang/exec/chatroom/controllers/conf"
-	"beehive-im/src/golang/exec/chatroom/routers"
+	"beehive-im/exec/chatroom/controllers"
+	"beehive-im/exec/chatroom/controllers/conf"
+	"beehive-im/exec/chatroom/routers"
 )
 
 /* 输入参数 */

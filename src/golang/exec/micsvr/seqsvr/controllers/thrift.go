@@ -1,9 +1,9 @@
 package controllers
 
 import (
-	"git.apache.org/thrift.git/lib/go/thrift"
+	"github.com/apache/thrift/lib/go/thrift"
 
-	"beehive-im/src/golang/lib/mesg/seqsvr"
+	"beehive-im/lib/mesg/seqsvr"
 )
 
 type SeqSvrThrift struct {

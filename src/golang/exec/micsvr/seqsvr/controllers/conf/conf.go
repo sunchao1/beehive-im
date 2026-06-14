@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"beehive-im/src/golang/lib/log"
+	"beehive-im/lib/log"
 )
 
 /* 在线中心配置 */

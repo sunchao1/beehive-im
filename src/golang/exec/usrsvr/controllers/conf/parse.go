@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"beehive-im/src/golang/lib/log"
+	"beehive-im/lib/log"
 )
 
 /* 日志配置 */

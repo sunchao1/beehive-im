@@ -6,11 +6,11 @@ import (
 	"github.com/astaxie/beego/logs"
 	"github.com/garyburd/redigo/redis"
 
-	"beehive-im/src/golang/lib/log"
-	"beehive-im/src/golang/lib/rdb"
-	"beehive-im/src/golang/lib/rtmq"
+	"beehive-im/lib/log"
+	"beehive-im/lib/rdb"
+	"beehive-im/lib/rtmq"
 
-	"beehive-im/src/golang/exec/tasker/controllers/conf"
+	"beehive-im/exec/tasker/controllers/conf"
 )
 
 /* Tasker上下文 */

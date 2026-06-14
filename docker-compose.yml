@@ -1,0 +1,100 @@
+# 本地开发中间件（Linux 容器内运行，避免 macOS 原生兼容问题）
+# 用法: docker compose up -d
+# 初始化: ./scripts/init-db.sh
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: beehive-redis
+    command: redis-server /usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "111111", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mysql:
+    image: mysql:8.0
+    container_name: beehive-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: "111111"
+      MYSQL_DATABASE: testdb
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - mysql_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p111111"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mongo:
+    image: mongo:6
+    container_name: beehive-mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: "111111"
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./docker/mongo/init.js:/docker-entrypoint-initdb.d/01-init.js:ro
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "mongodb://root:111111@127.0.0.1:27017/admin", "--eval", "db.runCommand({ ping: 1 })"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # Linux 编译环境（C + Go），避免 macOS clang/Makefile 兼容问题
+  # 用法: docker compose --profile build run --rm builder
+  builder:
+    profiles: ["build"]
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.build
+    container_name: beehive-builder
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    environment:
+      PROJ: /workspace
+    stdin_open: true
+    tty: true
+
+  # 在 Linux 容器内启动 9 进程（C 服务依赖 epoll，无法在 macOS 原生运行）
+  runner:
+    profiles: ["run"]
+    platform: linux/amd64
+    image: beehive-im-builder
+    container_name: beehive-runner
+    working_dir: /workspace
+    depends_on:
+      redis:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    volumes:
+      - .:/workspace
+    environment:
+      PROJ: /workspace
+      BEEHIVE_REDIS_HOST: redis
+      BEEHIVE_MYSQL_HOST: mysql
+      BEEHIVE_MONGO_HOST: mongo
+      LD_LIBRARY_PATH: /workspace/3rd/install/lib
+    entrypoint: ["/workspace/scripts/run-in-linux.sh"]
+    stdin_open: true
+    tty: true
+
+volumes:
+  mysql_data:
+  mongo_data:

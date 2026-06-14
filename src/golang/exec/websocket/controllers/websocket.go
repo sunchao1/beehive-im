@@ -3,8 +3,8 @@ package controllers
 import (
 	"time"
 
-	"beehive-im/src/golang/lib/comm"
-	"beehive-im/src/golang/lib/lws"
+	"beehive-im/lib/comm"
+	"beehive-im/lib/lws"
 )
 
 /******************************************************************************

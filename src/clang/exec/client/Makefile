@@ -17,8 +17,8 @@ INCLUDE += $(GLOBAL_INCLUDE)
 LIBS_PATH = -L$(PROJ)/lib $(THIRD_LIBS_PATH)
 STATIC_LIB_LIST = libsdk.a libmesg.a libcore.a
 LIBS = $(call func_find_static_link_lib,$(STATIC_LIB_PATH),$(STATIC_LIB_LIST))
-LIBS += -lpthread -lm -dl -lcurl -lprotobuf-c -lcjson
-LIBS += $(SHARED_LIB)
+LIBS += -lpthread -lm -dl -lcurl -lssl -lcrypto -lz -lprotobuf-c -lcjson
+LIBS += $(THIRD_RPATH)
 
 SRC_LIST = client.c
 

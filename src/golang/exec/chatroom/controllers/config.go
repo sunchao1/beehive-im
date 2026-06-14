@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	"beehive-im/src/golang/lib/comm"
+	"beehive-im/lib/comm"
 
-	"beehive-im/src/golang/exec/chatroom/models"
+	"beehive-im/exec/chatroom/models"
 )
 
 /* 聊天室配置 */

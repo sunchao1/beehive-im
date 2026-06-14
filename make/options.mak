@@ -13,6 +13,7 @@ GLOBAL_INCLUDE = -I$(PROJ_3RD)/install/include # 通用头文件路径
 # 静态链接库路径
 STATIC_LIB_PATH = $(PROJ_LIB) \
 				 $(PROJ_3RD)/install/lib \
+				 $(PROJ_3RD)/install/lib64 \
 				 /usr/lib/ \
 				 /usr/local/lib \
 				 /usr/lib/x86_64-linux-gnu/

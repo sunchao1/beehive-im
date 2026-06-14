@@ -3,7 +3,7 @@ package controllers
 import (
 	"time"
 
-	"beehive-im/src/golang/lib/chat"
+	"beehive-im/lib/chat"
 )
 
 /******************************************************************************

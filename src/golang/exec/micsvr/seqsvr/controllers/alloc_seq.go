@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"beehive-im/src/golang/lib/comm"
+	"beehive-im/lib/comm"
 )
 
 /******************************************************************************

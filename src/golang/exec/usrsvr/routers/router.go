@@ -3,7 +3,7 @@ package routers
 import (
 	"github.com/astaxie/beego"
 
-	"beehive-im/src/golang/exec/usrsvr/controllers"
+	"beehive-im/exec/usrsvr/controllers"
 )
 
 /* > 设置路由回调 */

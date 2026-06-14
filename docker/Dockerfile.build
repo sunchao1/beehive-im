@@ -1,0 +1,14 @@
+# Linux 编译镜像：gcc + make + curl/git + Go（与 go.mod go 1.20 一致）
+FROM golang:1.20-bookworm
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc g++ make git curl ca-certificates file \
+    autoconf automake libtool pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY docker/build-in-linux.sh /usr/local/bin/build-in-linux.sh
+RUN chmod +x /usr/local/bin/build-in-linux.sh
+
+WORKDIR /workspace
+ENTRYPOINT ["/usr/local/bin/build-in-linux.sh"]
+CMD ["all"]

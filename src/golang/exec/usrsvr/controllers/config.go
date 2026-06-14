@@ -9,7 +9,7 @@ import (
 
 	"github.com/garyburd/redigo/redis"
 
-	"beehive-im/src/golang/lib/comm"
+	"beehive-im/lib/comm"
 )
 
 /* 系统配置 */
