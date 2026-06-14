@@ -5,9 +5,9 @@ import (
 
 	"github.com/golang/protobuf/proto"
 
-	"beehive-im/src/golang/lib/chat_tab"
-	"beehive-im/src/golang/lib/comm"
-	"beehive-im/src/golang/lib/mesg"
+	"beehive-im/lib/chat_tab"
+	"beehive-im/lib/comm"
+	"beehive-im/lib/mesg"
 )
 
 const (

@@ -10,11 +10,11 @@ import (
 	"github.com/garyburd/redigo/redis"
 	_ "github.com/go-sql-driver/mysql"
 
-	"beehive-im/src/golang/lib/dbase"
-	"beehive-im/src/golang/lib/log"
-	"beehive-im/src/golang/lib/rdb"
+	"beehive-im/lib/dbase"
+	"beehive-im/lib/log"
+	"beehive-im/lib/rdb"
 
-	"beehive-im/src/golang/exec/micsvr/seqsvr/controllers/conf"
+	"beehive-im/exec/micsvr/seqsvr/controllers/conf"
 )
 
 const (

@@ -13,12 +13,13 @@ INCLUDE = -I. \
 		  -I$(PROJ)/src/clang/incl/sdk \
 		  -I$(PROJ)/src/clang/incl/mesg
 INCLUDE += $(GLOBAL_INCLUDE)
-LIBS_PATH = -L$(PROJ)/lib
+LIBS_PATH = -L$(PROJ)/lib $(THIRD_LIBS_PATH)
 
 # 注: 静态库请放在动态库之前
 STATIC_LIB_LIST = libcore.a
 LIBS = $(call func_find_static_link_lib,$(STATIC_LIB_PATH),$(STATIC_LIB_LIST))
-LIBS += -lpthread -lm -dl -lcjson
+LIBS += -lpthread -lm -dl -lcjson -lcurl -lssl -lcrypto -lz
+LIBS += $(THIRD_RPATH)
 LIBS += $(SHARED_LIB)
 
 SRC_LIST = sdk.c \

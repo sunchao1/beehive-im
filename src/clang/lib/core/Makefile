@@ -11,7 +11,7 @@ include $(PROJ)/make/build.mak
 INCLUDE = -I. \
 		  -I$(PROJ)/src/clang/incl
 INCLUDE += $(GLOBAL_INCLUDE)
-LIBS_PATH = -L$(PROJ)/lib
+LIBS_PATH = -L$(PROJ)/lib $(THIRD_LIBS_PATH)
 LIBS = -lpthread
 LIBS += $(SHARED_LIB)
 

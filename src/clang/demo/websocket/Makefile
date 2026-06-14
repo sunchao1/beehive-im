@@ -12,9 +12,9 @@ INCLUDE = -I. \
 			-I./incl \
 			-I$(PROJ)/src/clang/incl \
 			-I$(PROJ)/../cctrl/src/incl \
-			-I$(PROJ)/src/clang/incl/mesg \
-			-I/usr/local/include
-LIBS_PATH = -L$(PROJ)/lib
+			-I$(PROJ)/src/clang/incl/mesg
+INCLUDE += $(GLOBAL_INCLUDE)
+LIBS_PATH = -L$(PROJ)/lib $(THIRD_LIBS_PATH) -L/usr/local/lib
 
 # 注: 静态库请放在动态库之前
 STATIC_LIB_LIST = libev.a libcore.a libmesg.a

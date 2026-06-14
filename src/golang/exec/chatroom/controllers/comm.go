@@ -3,7 +3,7 @@ package controllers
 import (
 	"github.com/astaxie/beego"
 
-	"beehive-im/src/golang/lib/comm"
+	"beehive-im/lib/comm"
 )
 
 type ViewController struct {

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"beehive-im/src/golang/lib/comm"
+	"beehive-im/lib/comm"
 )
 
 /******************************************************************************
@@ -256,7 +256,7 @@ AGAIN:
  **作    者: # Qifeng.zou # 2017.04.12 23:18:51 #
  ******************************************************************************/
 func (ctx *SeqSvrCntx) query_seq_by_sid(secid uint64, sid uint64) (seq uint64, err error) {
-	session := ctx.ctrl.session[sid/USER_LIST_LEN]
+	session := ctx.ctrl.session[sid%USER_LIST_LEN]
 
 SESSION:
 	session.RLock()

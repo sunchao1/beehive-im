@@ -8,9 +8,9 @@ import (
 
 	"github.com/garyburd/redigo/redis"
 
-	"beehive-im/src/golang/lib/comm"
+	"beehive-im/lib/comm"
 
-	"beehive-im/src/golang/exec/chatroom/models"
+	"beehive-im/exec/chatroom/models"
 )
 
 /******************************************************************************

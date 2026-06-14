@@ -6,13 +6,13 @@ import (
 
 	"github.com/astaxie/beego/logs"
 
-	"beehive-im/src/golang/lib/chat_tab"
-	"beehive-im/src/golang/lib/comm"
-	"beehive-im/src/golang/lib/log"
-	"beehive-im/src/golang/lib/lws"
-	"beehive-im/src/golang/lib/rtmq"
+	"beehive-im/lib/chat_tab"
+	"beehive-im/lib/comm"
+	"beehive-im/lib/log"
+	"beehive-im/lib/lws"
+	"beehive-im/lib/rtmq"
 
-	"beehive-im/src/golang/exec/websocket/controllers/conf"
+	"beehive-im/exec/websocket/controllers/conf"
 )
 
 /* 连接状态定义 */

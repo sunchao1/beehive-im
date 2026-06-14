@@ -10,9 +10,8 @@ include $(PROJ)/make/build.mak
 
 INCLUDE = -I. \
 		  -I$(PROJ)/src/clang/incl \
-		  -I$(PROJ)/src/clang/incl/chat \
-		  -I$(PROJ)/../cctrl/src/incl
-LIBS_PATH = -L$(PROJ)/lib -L$(PROJ)/../cctrl/lib
+		  -I$(PROJ)/src/clang/incl/chat
+LIBS_PATH = -L$(PROJ)/lib $(THIRD_LIBS_PATH)
 
 # 静态链接库
 STATIC_LIB_LIST = libcore.a

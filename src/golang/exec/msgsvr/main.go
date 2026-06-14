@@ -9,8 +9,8 @@ import (
 	"runtime/pprof"
 	"syscall"
 
-	"beehive-im/src/golang/exec/msgsvr/controllers"
-	"beehive-im/src/golang/exec/msgsvr/controllers/conf"
+	"beehive-im/exec/msgsvr/controllers"
+	"beehive-im/exec/msgsvr/controllers/conf"
 )
 
 /* 输入参数 */

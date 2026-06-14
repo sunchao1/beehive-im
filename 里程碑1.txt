@@ -1,0 +1,41 @@
+feature_spec_task_01 已跑通，核心阻塞是业务逻辑 bug，不是 Docker 配置。修复后全链路验收通过。
+
+修复的问题
+seqsvr 数组越界（ONLINE 失败 code=10001 EOF）
+QuerySeqBySid 用 sid/100 作下标，sid≥1000000 会 panic。改为 sid % USER_LIST_LEN。
+
+chatroom 弹幕广播失败（Get node list failed! rid:10001）
+
+join 时未写入 Redis room:rid:zset，内存 rid→nid 映射一直为空
+join 后立即刷新映射
+弹幕路径走 ROOM_CHAT（0x040B），不是 ROOM_BC
+脚本与 demo
+
+smoke-test.sh 等待 ROOM_CHAT，并避免 WS 断连后 panic
+status.sh 修复 grep SIGPIPE
+demo/web 支持展示 ROOM_CHAT 消息
+当前验收结果
+./scripts/status.sh       # pass=9 fail=0
+./scripts/smoke-test.sh   # smoke-test OK
+全链路：register → iplist → WS ONLINE → ROOM-JOIN → A 发弹幕 B 收到 → QUIT/OFFLINE。
+
+演示方式
+./scripts/up-demo.sh
+./scripts/serve-demo.sh   # http://127.0.0.1:8088/
+开两个浏览器窗口：uid 100001 / 100002，同房 rid=10001 互发弹幕。
+
+task_01 交付物状态
+项	状态
+docker-compose 端口映射 + 环境变量
+✅
+conf/templates/ + gen-conf.sh
+✅
+up-demo.sh / status.sh / stop-linux.sh
+✅
+smoke-test.sh
+✅
+demo/web
+✅
+doc/DEMO.md
+✅
+feature_spec_task_01 DoD 已满足。若要继续，可以进入 feature_spec_task_02（群聊/推送/多节点）。

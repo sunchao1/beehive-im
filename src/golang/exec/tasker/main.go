@@ -8,8 +8,8 @@ import (
 	"runtime"
 	"syscall"
 
-	"beehive-im/src/golang/exec/tasker/controllers"
-	"beehive-im/src/golang/exec/tasker/controllers/conf"
+	"beehive-im/exec/tasker/controllers"
+	"beehive-im/exec/tasker/controllers/conf"
 )
 
 /* 输入参数 */

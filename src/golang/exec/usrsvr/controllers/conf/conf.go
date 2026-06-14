@@ -4,8 +4,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"beehive-im/src/golang/lib/log"
-	"beehive-im/src/golang/lib/rtmq"
+	"beehive-im/lib/log"
+	"beehive-im/lib/rtmq"
 )
 
 /* 在线中心配置 */

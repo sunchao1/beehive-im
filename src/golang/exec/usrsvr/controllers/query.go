@@ -7,7 +7,7 @@ import (
 
 	"github.com/garyburd/redigo/redis"
 
-	"beehive-im/src/golang/lib/comm"
+	"beehive-im/lib/comm"
 )
 
 type UsrSvrQueryCtrl struct {

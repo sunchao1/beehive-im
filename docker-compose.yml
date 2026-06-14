@@ -1,0 +1,108 @@
+# beehive-im 本地 Docker 演示栈
+# 一键演示: ./scripts/up-demo.sh
+# 仅中间件: docker compose up -d redis mysql mongo
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: beehive-redis
+    command: redis-server /usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "111111", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mysql:
+    image: mysql:8.0
+    container_name: beehive-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: "111111"
+      MYSQL_DATABASE: testdb
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - mysql_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p111111"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mongo:
+    image: mongo:4.4
+    container_name: beehive-mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: "111111"
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./docker/mongo/init.js:/docker-entrypoint-initdb.d/01-init.js:ro
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongo", "--quiet", "mongodb://root:111111@127.0.0.1:27017/admin", "--eval", "db.runCommand({ ping: 1 })"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  builder:
+    profiles: ["build"]
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.build
+    container_name: beehive-builder
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    environment:
+      PROJ: /workspace
+    stdin_open: true
+    tty: true
+
+  # 单容器跑 9 进程（C 依赖 epoll，macOS 需在 Linux 容器内运行）
+  runner:
+    profiles: ["run"]
+    platform: linux/amd64
+    image: beehive-im-builder
+    container_name: beehive-runner
+    working_dir: /workspace
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    ports:
+      - "8000:8000"   # usrsvr HTTP
+      - "8002:8002"   # websocket WS  /im
+      - "8004:8004"   # chatroom HTTP
+      - "9002:9002"   # listend TCP
+    volumes:
+      - .:/workspace
+    environment:
+      PROJ: /workspace
+      BEEHIVE_REDIS_HOST: redis
+      BEEHIVE_MYSQL_HOST: mysql
+      BEEHIVE_MONGO_HOST: mongo
+      BEEHIVE_FRWDER_HOST: "127.0.0.1"
+      BEEHIVE_SEQSVR_HOST: "127.0.0.1"
+      BEEHIVE_ACCESS_IP: "127.0.0.1"
+      BEEHIVE_WS_IP: "127.0.0.1"
+      LD_LIBRARY_PATH: /workspace/3rd/install/lib
+    entrypoint: ["/workspace/scripts/run-in-linux.sh"]
+    stdin_open: true
+    tty: true
+
+volumes:
+  mysql_data:
+  mongo_data:

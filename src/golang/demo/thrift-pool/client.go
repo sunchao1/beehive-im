@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"git.apache.org/thrift.git/lib/go/thrift"
+	"github.com/apache/thrift/lib/go/thrift"
 
-	"beehive-im/src/golang/lib/thrift_pool"
+	"beehive-im/lib/thrift_pool"
 )
 
 const (

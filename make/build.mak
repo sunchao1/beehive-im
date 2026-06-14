@@ -12,6 +12,12 @@ include $(PROJ)/make/options.mak
 CC = gcc
 AR = ar
 
+# 本地编译的 C 第三方库 (3rd/build_c.sh -> 3rd/install/)
+THIRD_PREFIX = $(PROJ_3RD)/install
+THIRD_LIBS_PATH = -L$(THIRD_PREFIX)/lib -L$(THIRD_PREFIX)/lib64
+THIRD_INCLUDE = -I$(THIRD_PREFIX)/include
+THIRD_RPATH = -Wl,-rpath,$(THIRD_PREFIX)/lib
+
 # -Wall: 显示所有警告信息
 # -gdwarf-2 -g3: 开启GDB调试时的额外信息 - 支持打印宏值
 # -O0: 不进行优化(优化: O2 O3)
@@ -53,4 +59,14 @@ CFLAGS = -Wall -gdwarf-2 -g3 -fPIC -O0 -fstack-check -fstack-protector-all -fbou
 			-Wno-unused-function
 CFLAGS += $(patsubst %, -D%, $(OPTIONS))
 LFLAGS = -shared -Wall -g -fPIC -fstack-protector-all -fbounds-check -rdynamic
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+	# gcc 12+ 对 snprintf 路径截断较严，旧代码先降级为 warning
+	CFLAGS += -Wno-format-truncation -Wno-deprecated-declarations
+endif
+ifeq ($(UNAME_S),Darwin)
+	# clang 不支持以下 gcc 专用选项
+	CFLAGS := $(filter-out -fbounds-check -rdynamic,$(CFLAGS))
+	LFLAGS := $(filter-out -fbounds-check -rdynamic,$(LFLAGS))
+endif
 AFLAGS = -c -r

@@ -15,11 +15,11 @@ INCLUDE = -I./incl \
 			-I$(PROJ)/src/clang/incl/rtmq \
 			-I$(PROJ)/src/clang/incl/access
 INCLUDE += $(GLOBAL_INCLUDE)
-LIBS_PATH = -L$(PROJ)/lib
+LIBS_PATH = -L$(PROJ)/lib $(THIRD_LIBS_PATH)
 
 # 静态链接库
 STATIC_LIB_LIST = librtmq.a libaccess.a \
-				  libchat.a libutils.a libcore.a libmesg.a
+				  libchat.a libcore.a libmesg.a
 LIBS = $(call func_find_static_link_lib,$(STATIC_LIB_PATH),$(STATIC_LIB_LIST))
 LIBS += -lpthread -lm -dl -lprotobuf-c
 LIBS += $(SHARED_LIB)

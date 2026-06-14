@@ -1,15 +1,35 @@
-目前第三方库都保存在$(PROJ)/src/golang/vendor目录
-使用govendor进行版本的控制
-安装govendor程序: go get github.com/kardianos/govendor
-govendor init
-govendor fetch github.com/tabalt/gracehttp
-govendor fetch github.com/go-sql-driver/mysql
-govendor fetch github.com/bradfitz/gomemcache/memcache
-govendor fetch github.com/garyburd/redigo/redis
+beehive-im Go 依赖 (govendor 风格 vendor 目录)
 
-init: 创建一个vendor目录并生成个空的
-add: 把$GOPATH中的包拷贝到vendor目录下
-update: 把$GOPATH中的包更新到vendor目录下
-remove: 从vendor目录下移除外部依赖包
-fetch: 从远程代码库拉取依赖包到vendor
-sync: 从远程代码拉取vendor.json里的版本
+构建要求:
+  export GOPATH=<项目>/gopath
+  export GO111MODULE=off
+  make 会自动创建 gopath/src/beehive-im 软链
+
+依赖版本 (2026-06-12 固定):
+  github.com/astaxie/beego                         v1.12.3
+  github.com/garyburd/redigo                       master
+  github.com/go-sql-driver/mysql                   v1.5.0
+  github.com/golang/protobuf                       v1.3.5
+  github.com/gorilla/websocket                     v1.4.2
+  github.com/shiena/ansicolor                      master
+  github.com/hashicorp/golang-lru                  v0.5.4
+  github.com/cespare/xxhash                        v2.1.2
+  github.com/beorn7/perks                          master
+  github.com/prometheus/client_golang              v1.11.1
+  github.com/prometheus/client_model               v0.2.0
+  github.com/prometheus/common                     v0.26.0
+  github.com/prometheus/procfs                     v0.6.0
+  github.com/golang/snappy                         master
+  github.com/matttproud/golang_protobuf_extensions v1.0.1
+  gopkg.in/mgo.v2                                  r2015.06.03
+  gopkg.in/yaml.v2                                 v2.4.0
+  git.apache.org/thrift.git                        0.9.3
+  golang.org/x/crypto                              v0.8.0
+  golang.org/x/net                                 v0.10.0
+  golang.org/x/sys                                 v0.7.0
+  golang.org/x/text                                v0.9.0
+
+重新拉取依赖 (需网络):
+  1. 确保 gopath/src/beehive-im 软链存在
+  2. 按上述版本 git clone 到 gopath/src/
+  3. 复制 github.com gopkg.in golang.org git.apache.org 到 vendor/

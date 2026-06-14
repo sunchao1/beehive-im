@@ -7,9 +7,9 @@ import (
 
 	"github.com/astaxie/beego"
 
-	"beehive-im/src/golang/exec/usrsvr/controllers"
-	"beehive-im/src/golang/exec/usrsvr/controllers/conf"
-	"beehive-im/src/golang/exec/usrsvr/routers"
+	"beehive-im/exec/usrsvr/controllers"
+	"beehive-im/exec/usrsvr/controllers/conf"
+	"beehive-im/exec/usrsvr/routers"
 )
 
 /* 输入参数 */

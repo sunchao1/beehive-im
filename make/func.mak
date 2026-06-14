@@ -14,9 +14,23 @@ define func_mkdir
 	rm -fr ${GCC_LOG};
 endef
 
-# 获取CPU核数
+# 获取CPU核数 (Linux: /proc/cpuinfo, macOS: sysctl, 兜底: 4)
 define func_cpu_cores
-	$(shell cat /proc/cpuinfo | grep "cpu cores" | awk -F: 'BEGIN {cpu_cores=0} {cpu_cores+=$$2} END{print cpu_cores}')
+	$(shell if [ -f /proc/cpuinfo ]; then \
+		cat /proc/cpuinfo | grep "cpu cores" | awk -F: 'BEGIN {cpu_cores=0} {cpu_cores+=$$2} END{if (cpu_cores>0) print cpu_cores; else print 4}'; \
+	elif command -v sysctl >/dev/null 2>&1; then \
+		sysctl -n hw.ncpu; \
+	else \
+		echo 4; \
+	fi)
+endef
+
+# 确保 GOPATH/src/beehive-im 软链存在
+define func_gopath_setup
+	@mkdir -p $(GOPATH_ROOT)/src; \
+	if [ ! -e $(GOPATH_ROOT)/src/beehive-im ]; then \
+		ln -sf $(PROJ) $(GOPATH_ROOT)/src/beehive-im; \
+	fi
 endef
 
 # 获取源文件的所依赖的头文件列表

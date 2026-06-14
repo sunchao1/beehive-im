@@ -9,11 +9,11 @@ import (
 
 	"github.com/golang/protobuf/proto"
 
-	"beehive-im/src/golang/lib/comm"
-	"beehive-im/src/golang/lib/crypt"
-	"beehive-im/src/golang/lib/im"
-	"beehive-im/src/golang/lib/mesg"
-	"beehive-im/src/golang/lib/mesg/seqsvr"
+	"beehive-im/lib/comm"
+	"beehive-im/lib/crypt"
+	"beehive-im/lib/im"
+	"beehive-im/lib/mesg"
+	"beehive-im/lib/mesg/seqsvr"
 )
 
 // 通用请求
@@ -850,7 +850,7 @@ func (ctx *UsrSvrCntx) query_seq_by_sid(sid uint64) (seq uint64, err error) {
 	}
 
 	client := conn.(*seqsvr.SeqSvrThriftClient)
-	defer ctx.seqsvr_pool.Put(client, false)
+	defer ctx.seqsvr_pool.Put(client, true)
 
 	seq_int, err := client.QuerySeqBySid(int64(sid))
 	if nil != err {

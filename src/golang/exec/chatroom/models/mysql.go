@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"beehive-im/src/golang/lib/dbase"
-	"beehive-im/src/golang/lib/mesg"
+	"beehive-im/lib/dbase"
+	"beehive-im/lib/mesg"
 )
 
 type RoomDbObj struct {

@@ -7,8 +7,8 @@ import (
 	_ "github.com/garyburd/redigo/redis"
 	_ "github.com/golang/protobuf/proto"
 
-	"beehive-im/src/golang/lib/comm"
-	_ "beehive-im/src/golang/lib/mesg"
+	"beehive-im/lib/comm"
+	_ "beehive-im/lib/mesg"
 )
 
 /* 推送接口 */

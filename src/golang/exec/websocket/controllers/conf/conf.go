@@ -4,9 +4,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"beehive-im/src/golang/lib/log"
-	"beehive-im/src/golang/lib/lws"
-	"beehive-im/src/golang/lib/rtmq"
+	"beehive-im/lib/log"
+	"beehive-im/lib/lws"
+	"beehive-im/lib/rtmq"
 )
 
 /* 侦听层配置 */
