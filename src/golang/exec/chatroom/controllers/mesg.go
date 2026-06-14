@@ -1112,6 +1112,8 @@ func (ctx *ChatRoomCntx) roomJoinHandler(
 	key = fmt.Sprintf(models.ROOM_KEY_RID_TO_NID_ZSET, req.GetRid())
 	pl.Send("ZADD", key, ttl, head.GetNid()) // 加入RID -> NID集合
 
+	pl.Send("ZADD", models.ROOM_KEY_RID_ZSET, ttl, req.GetRid()) // 活跃聊天室索引
+
 	key = fmt.Sprintf(models.ROOM_KEY_SID_TO_RID_ZSET, head.GetSid())
 	pl.Send("ZADD", key, ttl, req.GetRid()) /* 记录SID->RID集合 */
 
@@ -1165,6 +1167,7 @@ func ChatRoomJoinHandler(cmd uint32, nid uint32, data []byte, length uint32, par
 	/* 3. > 发送上线应答 */
 	ctx.roomJoinAck(head, req, gid)
 	ctx.roomJoinNotify(head, req)
+	ctx.updateRidToNidMap()
 
 	return 0
 }

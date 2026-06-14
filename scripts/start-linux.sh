@@ -12,5 +12,8 @@ fi
 echo "[start-linux] ensure middleware is up..."
 docker compose up -d redis mysql mongo
 
-echo "[start-linux] starting services in Linux container (Ctrl+C to stop)..."
-docker compose --profile run run --rm runner
+echo "[start-linux] starting runner in background (use ./scripts/stop-linux.sh to stop)..."
+docker compose --profile run up -d runner
+
+echo "[start-linux] tailing logs (Ctrl+C to stop tail only)..."
+docker compose --profile run logs -f runner

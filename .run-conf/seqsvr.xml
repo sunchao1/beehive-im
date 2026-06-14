@@ -2,6 +2,6 @@
     <LOG LEVEL="debug" PATH="../log" /> <!-- 日志配置 -->
     <REDIS ADDR="redis:6379" USR="beehive" PASSWD="111111" /> <!-- REDIS配置 -->
     <MYSQL ADDR="mysql:3306" USR="root" PASSWD="111111" DBNAME="testdb" /> <!-- MYSQL配置 -->
-    <MONGO ADDR="mongo:27017" USR="beehive" PASSWD="111111" /> <!-- MONGO配置 -->
+    <MONGO ADDR="mongo:27017" DBNAME="chat" USR="beehive" PASSWD="111111" /> <!-- MONGO配置 -->
     <CIPHER>%b@e!e@h@i#v@e$s$tVu^d(i(o</CIPHER> <!-- 私密密钥 -->
 </SEQSVR>

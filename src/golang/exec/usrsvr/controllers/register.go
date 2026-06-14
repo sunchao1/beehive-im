@@ -111,7 +111,7 @@ func (this *UsrSvrRegisterCtrl) register_handler(param *UsrSvrRegisterParam) {
 		return
 	}
 	client := conn.(*seqsvr.SeqSvrThriftClient)
-	defer ctx.seqsvr_pool.Put(client, false)
+	defer ctx.seqsvr_pool.Put(client, true)
 
 	/* > 申请会话ID */
 	sid, err := client.AllocSid()

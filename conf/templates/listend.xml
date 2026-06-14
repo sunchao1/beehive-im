@@ -11,7 +11,7 @@
     <!-- 帧听配置
             1) IP: 外网IP
             2) PORT: 帧听端口 -->
-    <ACCESS IP="127.0.0.1" PORT="9002">
+    <ACCESS IP="{{ACCESS_IP}}" PORT="9002">
         <!-- 并发(连接)配置
             1) MAX: 最大并发数
             2) TIMEOUT: 连接超时时间
@@ -34,7 +34,7 @@
     <!-- 转发层配置 -->
     <FRWDER>                                    <!-- NODE: 结点ID(必须唯一) -->
         <!-- 服务端地址(ADDR:${IP1}:${PORT1},${IP2}:${PORT2},...,${IPx}:${PORTx}) -->
-        <SERVER ADDR="127.0.0.1:28888" />
+        <SERVER ADDR="{{FRWDER_FORWARD}}" />
         <AUTH USR="qifeng" PASSWD="111111" />   <!-- 鉴权配置(USR:用户名 PASSWD:登录密码) -->
         <THREAD-POOL SEND_THD_NUM="4" WORK_THD_NUM="4" />  <!-- 线程数目(SEND:发送线程 WORK:工作线程) -->
         <BUFFER-POOL-SIZE SEND="5" RECV="5" />  <!-- 缓存配置(SEND:发送缓存(MB) RECV:接收缓存(MB)) -->

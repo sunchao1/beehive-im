@@ -117,8 +117,8 @@ func (ctx *LwsCntx) Register(path string) int {
 func (ctx *LwsCntx) Launch(protocol *Protocol) int {
 	ctx.protocol = protocol
 
-	/* 侦听指定端口 */
-	addr := fmt.Sprintf("%s:%d", ctx.conf.Ip, ctx.conf.Port)
+	/* 侦听指定端口（0.0.0.0 便于 Docker 端口映射；conf.Ip 仅用于 iplist 上报） */
+	addr := fmt.Sprintf("0.0.0.0:%d", ctx.conf.Port)
 
 	err := http.ListenAndServe(addr, nil)
 	if nil != err {

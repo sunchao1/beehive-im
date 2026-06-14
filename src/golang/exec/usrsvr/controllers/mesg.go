@@ -850,7 +850,7 @@ func (ctx *UsrSvrCntx) query_seq_by_sid(sid uint64) (seq uint64, err error) {
 	}
 
 	client := conn.(*seqsvr.SeqSvrThriftClient)
-	defer ctx.seqsvr_pool.Put(client, false)
+	defer ctx.seqsvr_pool.Put(client, true)
 
 	seq_int, err := client.QuerySeqBySid(int64(sid))
 	if nil != err {

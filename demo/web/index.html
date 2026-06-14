@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>beehive-im demo</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>beehive-im 弹幕演示</h1>
+    <p class="hint">开两个浏览器窗口，分别用 uid <code>100001</code> 与 <code>100002</code>，同一 rid <code>10001</code> 互发消息。</p>
+
+    <section class="panel">
+      <label>UID <input id="uid" type="number" value="100001"></label>
+      <label>RID <input id="rid" type="number" value="10001"></label>
+      <button id="goBtn">注册并连接</button>
+      <span id="status">idle</span>
+    </section>
+
+    <section class="panel">
+      <input id="chatBox" type="text" placeholder="输入弹幕..." disabled>
+      <button id="sendBtn" disabled>发送</button>
+    </section>
+
+    <section id="log"></section>
+  </main>
+  <script src="pb.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

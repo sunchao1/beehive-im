@@ -1,6 +1,6 @@
-# 本地开发中间件（Linux 容器内运行，避免 macOS 原生兼容问题）
-# 用法: docker compose up -d
-# 初始化: ./scripts/init-db.sh
+# beehive-im 本地 Docker 演示栈
+# 一键演示: ./scripts/up-demo.sh
+# 仅中间件: docker compose up -d redis mysql mongo
 
 services:
   redis:
@@ -36,7 +36,7 @@ services:
       retries: 20
 
   mongo:
-    image: mongo:6
+    image: mongo:4.4
     container_name: beehive-mongo
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
@@ -47,13 +47,11 @@ services:
       - ./docker/mongo/init.js:/docker-entrypoint-initdb.d/01-init.js:ro
       - mongo_data:/data/db
     healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "mongodb://root:111111@127.0.0.1:27017/admin", "--eval", "db.runCommand({ ping: 1 })"]
+      test: ["CMD", "mongo", "--quiet", "mongodb://root:111111@127.0.0.1:27017/admin", "--eval", "db.runCommand({ ping: 1 })"]
       interval: 5s
       timeout: 5s
       retries: 20
 
-  # Linux 编译环境（C + Go），避免 macOS clang/Makefile 兼容问题
-  # 用法: docker compose --profile build run --rm builder
   builder:
     profiles: ["build"]
     platform: linux/amd64
@@ -69,13 +67,14 @@ services:
     stdin_open: true
     tty: true
 
-  # 在 Linux 容器内启动 9 进程（C 服务依赖 epoll，无法在 macOS 原生运行）
+  # 单容器跑 9 进程（C 依赖 epoll，macOS 需在 Linux 容器内运行）
   runner:
     profiles: ["run"]
     platform: linux/amd64
     image: beehive-im-builder
     container_name: beehive-runner
     working_dir: /workspace
+    restart: unless-stopped
     depends_on:
       redis:
         condition: service_healthy
@@ -83,6 +82,11 @@ services:
         condition: service_healthy
       mongo:
         condition: service_healthy
+    ports:
+      - "8000:8000"   # usrsvr HTTP
+      - "8002:8002"   # websocket WS  /im
+      - "8004:8004"   # chatroom HTTP
+      - "9002:9002"   # listend TCP
     volumes:
       - .:/workspace
     environment:
@@ -90,6 +94,10 @@ services:
       BEEHIVE_REDIS_HOST: redis
       BEEHIVE_MYSQL_HOST: mysql
       BEEHIVE_MONGO_HOST: mongo
+      BEEHIVE_FRWDER_HOST: "127.0.0.1"
+      BEEHIVE_SEQSVR_HOST: "127.0.0.1"
+      BEEHIVE_ACCESS_IP: "127.0.0.1"
+      BEEHIVE_WS_IP: "127.0.0.1"
       LD_LIBRARY_PATH: /workspace/3rd/install/lib
     entrypoint: ["/workspace/scripts/run-in-linux.sh"]
     stdin_open: true
