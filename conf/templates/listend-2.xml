@@ -1,0 +1,21 @@
+<!-- 第二 TCP 接入点（多节点验证） -->
+<LISTEND GID="10002" ID="10002">
+    <OPERATOR ID="2" NATION="CN" />
+    <DISTQ NUM="8" MAX="4096" SIZE="4KB" />
+    <ACCESS IP="{{ACCESS_IP}}" PORT="9003">
+        <CONNECTIONS MAX="1024" TIMEOUT="15" />
+        <QUEUE>
+            <CONNQ MAX="8192" SIZE="0" />
+            <SENDQ MAX="8192" SIZE="4KB" />
+        </QUEUE>
+        <THREAD-POOL LSVR="1" RSVR="10" />
+    </ACCESS>
+    <FRWDER>
+        <SERVER ADDR="{{FRWDER_FORWARD}}" />
+        <AUTH USR="qifeng" PASSWD="111111" />
+        <THREAD-POOL SEND_THD_NUM="4" WORK_THD_NUM="4" />
+        <BUFFER-POOL-SIZE SEND="5" RECV="5" />
+        <RECVQ MAX="4096" SIZE="4KB" />
+        <SENDQ MAX="4096" SIZE="4KB" />
+    </FRWDER>
+</LISTEND>

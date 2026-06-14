@@ -788,6 +788,28 @@ func ChatRoomCreatHandler(cmd uint32, nid uint32, data []byte, length uint32, pa
 
 /* 解散聊天室 */
 func ChatRoomDismissHandler(cmd uint32, nid uint32, data []byte, length uint32, param interface{}) int {
+	ctx, ok := param.(*ChatRoomCntx)
+	if !ok {
+		return -1
+	}
+
+	ctx.log.Debug("Recv room-dismiss request! cmd:0x%04X nid:%d length:%d", cmd, nid, length)
+
+	head, req, code, err := ctx.parseRoomDismissReq(data)
+	if err != nil {
+		if head != nil {
+			ctx.roomDismissAck(head, code, err.Error())
+		}
+		return -1
+	}
+
+	code, err = ctx.roomDismissHandler(head, req)
+	if err != nil {
+		ctx.roomDismissAck(head, code, err.Error())
+		return -1
+	}
+
+	ctx.roomDismissAck(head, 0, "Ok")
 	return 0
 }
 
@@ -1152,6 +1174,12 @@ func ChatRoomJoinHandler(cmd uint32, nid uint32, data []byte, length uint32, par
 	head, req, code, err := ctx.parseRoomJoinReq(data)
 	if nil == req {
 		ctx.log.Error("Parse room-join request failed!")
+		ctx.roomJoinFailed(head, req, code, err)
+		return -1
+	}
+
+	if code, err = ctx.validateRoomJoin(head, req); err != nil {
+		ctx.log.Error("Room join validate failed! code:%d errmsg:%s", code, err.Error())
 		ctx.roomJoinFailed(head, req, code, err)
 		return -1
 	}
@@ -2235,6 +2263,12 @@ func ChatRoomChatHandler(cmd uint32, nid uint32,
 		if nil != head {
 			ctx.roomChatFailed(head, req, comm.ERR_SVR_PARSE_PARAM, err.Error())
 		}
+		return -1
+	}
+
+	if code, errmsg := ctx.validateRoomChat(head, req); code != 0 {
+		ctx.log.Error("Room chat validate failed! code:%d errmsg:%s", code, errmsg)
+		ctx.roomChatFailed(head, req, code, errmsg)
 		return -1
 	}
 

@@ -68,9 +68,19 @@ start_bg chatroom "${RUN_CONF}/chatroom.xml"
 sleep 3
 start_bg websocket "${RUN_CONF}/websocket.xml"
 
+if [ "${BEEHIVE_MULTINODE:-1}" = "1" ]; then
+    echo "[run] multinode: starting listend-2 + websocket-2..."
+    ./listend.v.1.1 -c "${RUN_CONF}/listend-2.xml" -l debug -d
+    ./websocket.v.1.1 -c "${RUN_CONF}/websocket-2.xml" &
+fi
+
 wait_tcp "127.0.0.1" 8000 "usrsvr" 90
 wait_tcp "127.0.0.1" 8002 "websocket" 30
 wait_tcp "127.0.0.1" 8004 "chatroom" 30
+if [ "${BEEHIVE_MULTINODE:-1}" = "1" ]; then
+    wait_tcp "127.0.0.1" 8003 "websocket-2" 30
+    wait_tcp "127.0.0.1" 9003 "listend-2" 30
+fi
 
 echo "[run] starting listend (foreground, keep container alive)..."
 exec ./listend.v.1.1 -c "${RUN_CONF}/listend.xml" -l debug

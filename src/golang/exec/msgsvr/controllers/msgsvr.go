@@ -124,9 +124,8 @@ func MsgSvrInit(conf *conf.MsgSvrConf) (ctx *MsgSvrCntx, err error) {
 func (ctx *MsgSvrCntx) Register() {
 	/* > 通用消息 */
 	ctx.frwder.Register(comm.CMD_SYNC, MsgSvrSyncHandler, ctx)
-	//ctx.frwder.Register(comm.CMD_P2P, MsgSvrP2pHandler, ctx)
-
-	//ctx.frwder.Register(comm.CMD_P2P_ACK, MsgSvrP2pAckHandler, ctx)
+	ctx.frwder.Register(comm.CMD_P2P, MsgSvrP2pHandler, ctx)
+	ctx.frwder.Register(comm.CMD_P2P_ACK, MsgSvrP2pAckHandler, ctx)
 
 	/* > 私聊消息 */
 	ctx.frwder.Register(comm.CMD_CHAT, MsgSvrChatHandler, ctx)

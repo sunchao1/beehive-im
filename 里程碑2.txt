@@ -1,0 +1,79 @@
+1. Redis 群生命周期 — src/golang/lib/chat/group_ops.go
+建群 / 加群 / 退群 / 踢人 / 解散 / 禁言 / 黑名单 / 管理员 / 成员列表等。
+
+2. usrsvr 群命令 0x03xx — gmesg.go + gmesg_send.go
+实现 0x0301～0x031D 及 0x0350～0x0367 NTF（原 stub 已补齐）。
+
+GROUP-CREAT-ACK 的 errmsg 为 Ok:{gid}（协议无 gid 字段时的兼容做法）
+权限：owner / manager 分级校验
+3. msgsvr GROUP-CHAT — msgsvr/controllers/gmesg.go
+修复 fan-out：for _, nid := range nid_list（原先 range slice 取的是下标）
+校验：成员身份、禁言、空消息
+4. 验收与文档
+文件	作用
+scripts/smoke-group.sh
+群聊 E2E：建群→加群→互发→解散
+tools/smoke-group/main.go
+smoke 实现
+doc/GROUP_DESIGN.md
+T02-19 服务选型
+doc/DEMO_SCOPE.md
+实现边界 + 敏感词不做
+doc/COMMAND.md
+群聊命令状态 → 已实现
+如何验证
+# 1. 重新编译 Linux 二进制（usrsvr/msgsvr 有改动）
+./scripts/build-linux.sh
+# 2. 重启 demo 栈
+./scripts/up-demo.sh
+# 3. 原 room smoke 仍应通过
+./scripts/smoke-test.sh
+# 4. 群聊 smoke
+./scripts/smoke-group.sh
+
+
+
+§2.1–2.3 聊天室加固
+ROOM-DISMISS：MySQL 关房 + Redis 清拓扑 + 协议 ACK（room_lifecycle.go）
+JOIN/CHAT 错误路径：未上线、房间不存在/已关闭、重复进房、未进房发消息、空消息/超长
+HTTP：GET /room/query?option=room-num&rid= 返回真实在线人数
+种子数据：init.sql 中 demo-room status=1（开启）
+§2.4.2 建房/解散
+协议 ROOM-CREAT/DISMISS 全链路
+HTTP /room/config?action=close&option=room 复用解散逻辑
+§2.4.4 推送 0x05xx
+lib/push/delivery.go：按 sid/uid/全站下发
+msgsvr：BC/P2P fan-out（已注册 P2P）
+usrsvr HTTP：/im/push 实现 uid/sid/group/broadcast
+websocket：下行 BC/P2P 注册
+§2.4.5 多节点
+conf/templates/listend-2.xml（9003）、websocket-2.xml（8003）
+docker-compose.yml 暴露 8003/9003，BEEHIVE_MULTINODE=1
+run-in-linux.sh 启动第二接入点
+Smoke 与文档
+脚本	用途
+smoke-test.sh
+成功路径 + 自动跑 smoke-fail.sh
+smoke-fail.sh
+错误 token / 非法 join / 未进房 chat
+smoke-room.sh
+CREAT → JOIN → CHAT → DISMISS
+smoke-push.sh
+HTTP P2P/BC
+smoke-multinode.sh
+8002 + 8003 跨节点同房
+smoke-group.sh
+群聊（此前已有）
+已更新 doc/DEMO_SCOPE.md、doc/COMMAND.md、doc/DEMO.md。
+
+本地验证
+./scripts/build-linux.sh   # 改 Go 后必做
+./scripts/up-demo.sh
+./scripts/smoke-test.sh
+./scripts/smoke-room.sh
+./scripts/smoke-group.sh
+./scripts/smoke-push.sh
+./scripts/smoke-multinode.sh
+明确未做（符合 task_02）
+敏感词过滤：仅文档标注，无代码实现
+当前环境网络受限，未在 Docker 内跑通全套 smoke；你本地 rebuild 后按上面脚本验收即可。需要我帮你跑一遍或提交 commit 可以说一声。

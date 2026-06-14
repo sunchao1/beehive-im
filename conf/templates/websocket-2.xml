@@ -1,0 +1,15 @@
+<!-- 第二 WebSocket 接入点（多节点验证） -->
+<LISTEND GID="20002" ID="20002">
+    <LOG LEVEL="debug" PATH="../log/" />
+    <OPERATOR ID="1" NATION="CN" />
+    <WEBSOCKET IP="{{WS_IP}}" PORT="8003">
+        <CONNECTIONS MAX="1024" TIMEOUT="15" />
+        <SENDQ MAX="128" SIZE="4KB" />
+    </WEBSOCKET>
+    <FRWDER ADDR="{{FRWDER_FORWARD}}">
+        <AUTH USR="qifeng" PASSWD="111111" />
+        <WORKER-NUM>10</WORKER-NUM>
+        <SEND-CHAN-LEN>20000</SEND-CHAN-LEN>
+        <RECV-CHAN-LEN>20000</RECV-CHAN-LEN>
+    </FRWDER>
+</LISTEND>

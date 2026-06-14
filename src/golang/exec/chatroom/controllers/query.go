@@ -29,6 +29,9 @@ func (this *ChatRoomQueryCtrl) Query() {
 	case "group-list":
 		this.GroupList(ctx)
 		return
+	case "room-num":
+		this.RoomNum(ctx)
+		return
 	}
 
 	errmsg := fmt.Sprintf("Unsupport this option:%s", option)
@@ -232,4 +235,36 @@ func (this *ChatRoomQueryCtrl) GroupList(ctx *ChatRoomCntx) {
 	this.Data["json"] = rsp
 	this.ServeJSON()
 	return
+}
+
+type RoomNumRsp struct {
+	Rid    uint64 `json:"rid"`
+	Total  uint32 `json:"total"`
+	Code   int    `json:"code"`
+	ErrMsg string `json:"errmsg"`
+}
+
+func (this *ChatRoomQueryCtrl) RoomNum(ctx *ChatRoomCntx) {
+	ridStr := this.GetString("rid")
+	if ridStr == "" {
+		this.Error(comm.ERR_SVR_INVALID_PARAM, "Rid is invalid!")
+		return
+	}
+	rid, _ := strconv.ParseInt(ridStr, 10, 64)
+	if rid == 0 {
+		this.Error(comm.ERR_SVR_INVALID_PARAM, "Rid is invalid!")
+		return
+	}
+	total, err := ctx.cache.RoomOnlineCount(uint64(rid))
+	if err != nil {
+		this.Error(comm.ERR_SYS_SYSTEM, err.Error())
+		return
+	}
+	this.Data["json"] = &RoomNumRsp{
+		Rid:    uint64(rid),
+		Total:  uint32(total),
+		Code:   0,
+		ErrMsg: "Ok",
+	}
+	this.ServeJSON()
 }

@@ -10,7 +10,11 @@ docker compose --profile build run --rm builder /workspace/scripts/build-linux.s
 ./scripts/up-demo.sh
 
 # 3. 自动化验收
-./scripts/smoke-test.sh
+./scripts/smoke-test.sh      # 成功路径 + 失败路径
+./scripts/smoke-room.sh      # 建房全链路
+./scripts/smoke-group.sh     # 群聊
+./scripts/smoke-push.sh      # HTTP 推送
+./scripts/smoke-multinode.sh # 双 WS 互通（需 BEEHIVE_MULTINODE=1）
 
 # 4. 浏览器双用户弹幕
 ./scripts/serve-demo.sh
@@ -26,8 +30,10 @@ docker compose --profile build run --rm builder /workspace/scripts/build-linux.s
 | 27017 | Mongo（**4.4**，兼容 mgo.v2；升级后若连接失败请 `docker volume rm beehive-im_mongo_data`） |
 | 8000 | usrsvr HTTP（register / iplist） |
 | 8002 | websocket WS `/im` |
+| 8003 | websocket-2 WS（多节点） |
 | 8004 | chatroom HTTP |
 | 9002 | listend TCP（可选 CLI） |
+| 9003 | listend-2 TCP（多节点） |
 
 ## 测试数据
 
