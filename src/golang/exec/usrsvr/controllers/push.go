@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	_ "github.com/garyburd/redigo/redis"
 	_ "github.com/golang/protobuf/proto"
 
+	"beehive-im/lib/chat"
 	"beehive-im/lib/comm"
 	_ "beehive-im/lib/mesg"
 )
@@ -47,7 +47,20 @@ func (this *UsrSvrPushCtrl) Push() {
 // SID推送
 
 func (this *UsrSvrPushCtrl) SidPush(ctx *UsrSvrCntx) {
-	return
+	sid, _ := this.GetInt64("sid")
+	if sid == 0 {
+		this.Error(comm.ERR_SVR_INVALID_PARAM, "sid invalid")
+		return
+	}
+	body := this.Ctx.Input.RequestBody
+	kind := this.GetString("kind")
+	cmd := pushCmdFromParam(kind)
+	if err := ctx.pushDeliver().ToSid(cmd, uint64(sid), body); err != nil {
+		this.Error(comm.ERR_SYS_SYSTEM, err.Error())
+		return
+	}
+	this.Data["json"] = map[string]interface{}{"code": 0, "errmsg": "OK"}
+	this.ServeJSON()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -141,6 +154,13 @@ func (req *UidPushReq) parse_param(
  **作    者: # Qifeng.zou # 2017.03.19 22:19:04 #
  ******************************************************************************/
 func (req *UidPushReq) push_handler(ctx *UsrSvrCntx, param *UidPushParam) (code int, err error) {
+	body := req.ctrl.Ctx.Input.RequestBody
+	kind := req.ctrl.GetString("kind")
+	cmd := pushCmdFromParam(kind)
+	_, err = ctx.pushBody(cmd, 0, param.uid, body)
+	if err != nil {
+		return comm.ERR_SYS_SYSTEM, err
+	}
 	return 0, nil
 }
 
@@ -171,7 +191,7 @@ func (req *UidPushReq) push_success(param *UidPushParam) {
 // APP推送
 
 func (this *UsrSvrPushCtrl) AppPush(ctx *UsrSvrCntx) {
-	return
+	this.Error(comm.ERR_SYS_UNSUPPORT, "app push not implemented in demo")
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -191,12 +211,46 @@ type GroupPushRsp struct {
 }
 
 func (this *UsrSvrPushCtrl) GroupPush(ctx *UsrSvrCntx) {
-	return
+	gid, _ := this.GetInt64("gid")
+	if gid == 0 {
+		this.Error(comm.ERR_SVR_INVALID_PARAM, "gid invalid")
+		return
+	}
+	body := this.Ctx.Input.RequestBody
+	kind := this.GetString("kind")
+	cmd := pushCmdFromParam(kind)
+
+	uids, err := chat.GroupListMembers(ctx.redis, uint64(gid))
+	if err != nil {
+		this.Error(comm.ERR_SYS_SYSTEM, err.Error())
+		return
+	}
+	sent := 0
+	for _, uid := range uids {
+		if n, perr := ctx.pushBody(cmd, 0, uid, body); perr == nil && n > 0 {
+			sent += n
+		}
+	}
+	if sent == 0 {
+		this.Error(comm.ERR_SYS_SYSTEM, "no online group member")
+		return
+	}
+	this.Data["json"] = &GroupPushRsp{Gid: uint64(gid), Code: 0, ErrMsg: "OK"}
+	this.ServeJSON()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // 全员推送
 
 func (this *UsrSvrPushCtrl) Broadcast(ctx *UsrSvrCntx) {
-	return
+	body := this.Ctx.Input.RequestBody
+	kind := this.GetString("kind")
+	cmd := pushCmdFromParam(kind)
+	n, err := ctx.pushDeliver().ToAllLsnd(cmd, body)
+	if err != nil || n == 0 {
+		this.Error(comm.ERR_SYS_SYSTEM, "broadcast failed")
+		return
+	}
+	this.Data["json"] = map[string]interface{}{"code": 0, "errmsg": "OK", "nodes": n}
+	this.ServeJSON()
 }

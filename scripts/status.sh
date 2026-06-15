@@ -46,8 +46,10 @@ check "mongo" middleware_healthy beehive-mongo
 echo "=== app ports (host) ==="
 check "usrsvr :8000" port_open 8000
 check "websocket :8002" port_open 8002
+check "websocket-2 :8003" port_open 8003
 check "chatroom :8004" port_open 8004
 check "listend :9002" port_open 9002
+check "listend-2 :9003" port_open 9003
 
 echo "=== runner container ==="
 if docker ps --format '{{.Names}}' | grep -qx beehive-runner; then

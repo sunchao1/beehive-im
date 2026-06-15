@@ -85,8 +85,10 @@ services:
     ports:
       - "8000:8000"   # usrsvr HTTP
       - "8002:8002"   # websocket WS  /im
+      - "8003:8003"   # websocket-2 WS（多节点）
       - "8004:8004"   # chatroom HTTP
       - "9002:9002"   # listend TCP
+      - "9003:9003"   # listend-2 TCP（多节点）
     volumes:
       - .:/workspace
     environment:
@@ -98,6 +100,7 @@ services:
       BEEHIVE_SEQSVR_HOST: "127.0.0.1"
       BEEHIVE_ACCESS_IP: "127.0.0.1"
       BEEHIVE_WS_IP: "127.0.0.1"
+      BEEHIVE_MULTINODE: "1"
       LD_LIBRARY_PATH: /workspace/3rd/install/lib
     entrypoint: ["/workspace/scripts/run-in-linux.sh"]
     stdin_open: true

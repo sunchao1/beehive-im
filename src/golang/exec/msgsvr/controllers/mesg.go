@@ -12,6 +12,7 @@ import (
 	"beehive-im/lib/comm"
 	"beehive-im/lib/im"
 	"beehive-im/lib/mesg"
+	"beehive-im/lib/push"
 )
 
 /******************************************************************************
@@ -36,8 +37,16 @@ func MsgSvrBcHandler(cmd uint32, nid uint32,
 		return -1
 	}
 
-	ctx.log.Debug("Recv group msg ack!")
-
+	d := &push.Deliver{
+		Pool: ctx.redis,
+		SendFn: func(c uint32, buf []byte, ln uint32) int {
+			return ctx.frwder.AsyncSend(c, buf, ln)
+		},
+	}
+	if err := d.FanOutFromPacket(data); err != nil {
+		ctx.log.Error("BC fan-out failed! errmsg:%s", err.Error())
+		return -1
+	}
 	return 0
 }
 
@@ -100,8 +109,16 @@ func MsgSvrP2pHandler(cmd uint32, nid uint32,
 		return -1
 	}
 
-	ctx.log.Debug("Recv group msg ack!")
-
+	d := &push.Deliver{
+		Pool: ctx.redis,
+		SendFn: func(c uint32, buf []byte, ln uint32) int {
+			return ctx.frwder.AsyncSend(c, buf, ln)
+		},
+	}
+	if err := d.FanOutFromPacket(data); err != nil {
+		ctx.log.Error("P2P deliver failed! errmsg:%s", err.Error())
+		return -1
+	}
 	return 0
 }
 

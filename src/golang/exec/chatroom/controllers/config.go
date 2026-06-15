@@ -595,15 +595,7 @@ func (this *ChatRoomConfigCtrl) closeRoom(ctx *ChatRoomCntx) {
 		return
 	}
 
-	rds := ctx.cache.Get()
-	defer rds.Close()
-
-	/* > 修改聊天室属性 */
-	key := fmt.Sprintf(models.ROOM_KEY_RID_ATTR, param.rid)
-
-	_, err = rds.Do("HSET", key, "STATUS", models.ROOM_STAT_CLOSE)
-	if nil != err {
-		/* > 回复处理应答 */
+	if err := ctx.DismissRoomByRid(param.rid); err != nil {
 		this.Error(comm.ERR_SYS_SYSTEM, err.Error())
 		return
 	}

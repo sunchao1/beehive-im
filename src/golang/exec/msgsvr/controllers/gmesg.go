@@ -10,6 +10,7 @@ import (
 	"github.com/garyburd/redigo/redis"
 	"github.com/golang/protobuf/proto"
 
+	"beehive-im/lib/chat"
 	"beehive-im/lib/comm"
 	"beehive-im/lib/mesg"
 )
@@ -166,12 +167,12 @@ func (ctx *MsgSvrCntx) group_chat_handler(
 		return nil
 	}
 
-	/* > 遍历rid->nid列表, 并下发聊天室消息 */
-	for nid := range nid_list {
+	/* > 遍历 gid->nid 列表, 并下发群聊消息 */
+	for _, nid := range nid_list {
 		ctx.log.Debug("gid:%d nid:%d", req.GetGid(), nid)
 
-		ctx.send_data(comm.CMD_GROUP_CHAT, head.GetSid(), head.GetCid(),
-			uint32(nid), head.GetSeq(), data[comm.MESG_HEAD_SIZE:], head.GetLength())
+		ctx.send_data(comm.CMD_GROUP_CHAT, head.GetSid(), 0, nid,
+			head.GetSeq(), data[comm.MESG_HEAD_SIZE:], head.GetLength())
 	}
 	return err
 }
@@ -205,7 +206,7 @@ func MsgSvrGroupChatHandler(cmd uint32, nid uint32,
 
 	ctx.log.Debug("Recv group chat message!")
 
-	/* > 解析ROOM-MSG协议 */
+	/* > 解析GROUP-CHAT协议 */
 	head, req := ctx.group_chat_parse(data)
 	if nil == head {
 		ctx.log.Error("Parse header of group chat failed!")
@@ -216,8 +217,28 @@ func MsgSvrGroupChatHandler(cmd uint32, nid uint32,
 		return -1
 	}
 
+	if _, ok, err := chat.GroupGetRole(ctx.redis, req.GetGid(), req.GetUid()); err != nil {
+		ctx.group_chat_failed(head, req, comm.ERR_SYS_SYSTEM, err.Error())
+		return -1
+	} else if !ok {
+		ctx.group_chat_failed(head, req, comm.ERR_SVR_CHECK_FAIL, "not in group")
+		return -1
+	}
+	gagged, err := chat.GroupIsGagged(ctx.redis, req.GetGid(), req.GetUid())
+	if err != nil {
+		ctx.group_chat_failed(head, req, comm.ERR_SYS_SYSTEM, err.Error())
+		return -1
+	} else if gagged {
+		ctx.group_chat_failed(head, req, comm.ERR_SVR_AUTH_FAIL, "user gagged")
+		return -1
+	}
+	if req.GetText() == "" {
+		ctx.group_chat_failed(head, req, comm.ERR_SVR_INVALID_PARAM, "empty message")
+		return -1
+	}
+
 	/* > 进行业务处理 */
-	err := ctx.group_chat_handler(head, req, data)
+	err = ctx.group_chat_handler(head, req, data)
 	if nil != err {
 		ctx.log.Error("Parse group-msg failed!")
 		ctx.group_chat_failed(head, req, comm.ERR_SVR_PARSE_PARAM, err.Error())

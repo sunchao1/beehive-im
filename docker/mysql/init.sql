@@ -45,5 +45,5 @@ INSERT INTO IM_RID_GEN_TAB (id, rid) VALUES (0, 10001)
 INSERT INTO CHAT_ROOM_INFO_TAB
     (rid, name, type, level, owner, status, image, description, create_time, update_time)
 VALUES
-    (10001, 'demo-room', 0, 0, 100001, 0, '', 'demo chat room', UNIX_TIMESTAMP(), UNIX_TIMESTAMP())
+    (10001, 'demo-room', 0, 0, 100001, 1, '', 'demo chat room', UNIX_TIMESTAMP(), UNIX_TIMESTAMP())
 ON DUPLICATE KEY UPDATE name=VALUES(name);

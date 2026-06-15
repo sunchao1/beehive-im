@@ -51,6 +51,10 @@ func (ctx *LsndCntx) UpMesgRegister() {
 
 	/* > 内部运维消息 */
 	ctx.frwder.Register(comm.CMD_LSND_INFO_ACK, LsndUpMesgLsndInfoAckHandler, ctx)
+
+	/* > 推送消息（BC/P2P 透传） */
+	ctx.frwder.Register(comm.CMD_BC, LsndUpMesgPushHandler, ctx)
+	ctx.frwder.Register(comm.CMD_P2P, LsndUpMesgPushHandler, ctx)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -400,6 +404,21 @@ func LsndRoomSendDataCb(sid uint64, cid uint64, _param interface{}) int {
 	/* > 下发ROOM各种消息 */
 	ctx.lws.AsyncSend(cid, data)
 
+	return 0
+}
+
+// LsndUpMesgPushHandler BC/P2P 下行：有 sid 则单播，否则本节点全员下发。
+func LsndUpMesgPushHandler(cmd uint32, nid uint32, data []byte, length uint32, param interface{}) int {
+	head := comm.MesgHeadNtoh(data)
+	if head.GetSid() != 0 {
+		return LsndUpMesgCommHandler(cmd, nid, data, length, param)
+	}
+	ctx, ok := param.(*LsndCntx)
+	if !ok {
+		return -1
+	}
+	p := &LsndRoomDataParam{ctx: ctx, data: data}
+	ctx.chat.TravSession(LsndRoomSendDataCb, p)
 	return 0
 }
 

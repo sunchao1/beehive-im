@@ -4,4 +4,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "${ROOT}/src/golang"
 
-exec go run -mod=mod ../../tools/smoke/main.go "$@"
+go run -mod=mod ../../tools/smoke/main.go "$@"
+echo ""
+echo "[smoke] running failure-path cases..."
+cd "${ROOT}"
+exec ./scripts/smoke-fail.sh
