@@ -1,5 +1,8 @@
 # beehive-im 本地 Docker 演示
 
+> **面试演示**请直接看 **[INTERVIEW_DEMO.md](INTERVIEW_DEMO.md)**（15 分钟脚本 + 错误场景 + 命令速查）。  
+> 故障排查：[TROUBLESHOOT.md](TROUBLESHOOT.md) · 规模说明：[SCALE.md](SCALE.md)
+
 ## 快速开始
 
 ```bash
@@ -60,6 +63,8 @@ docker compose --profile build run --rm builder /workspace/scripts/build-linux.s
 ```
 
 ## 常见失败
+
+完整 Top 10 见 **[TROUBLESHOOT.md](TROUBLESHOOT.md)**。
 
 | 现象 | 排查 |
 |------|------|

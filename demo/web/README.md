@@ -1,5 +1,7 @@
 # Demo Web 客户端
 
+> 推荐演示流程见 [doc/INTERVIEW_DEMO.md](../doc/INTERVIEW_DEMO.md) §8～13 min。
+
 ## 三步启动
 
 1. 启动全栈：`./scripts/up-demo.sh`
@@ -24,3 +26,9 @@
 无 CDN；`pb.js` 为内联最小 protobuf 编解码。
 
 **务必用 `./scripts/serve-demo.sh` 打开页面**（会代理 `/im/*` 到 usrsvr，避免 8088→8000 跨域导致 `Failed to fetch`）。不要直接双击 `index.html`。
+
+## 错误场景（演示用）
+
+- **未进房发弹幕**：只连接不 join，发消息应失败（见 `smoke-fail.sh`）
+- **重复 join / 错误 rid**：见 [INTERVIEW_DEMO.md](../doc/INTERVIEW_DEMO.md) 场景 C  
+- 页面内暂未做「停 frwder」按钮；用终端 `docker compose --profile run stop runner` 模拟栈故障
