@@ -1,0 +1,38 @@
+{
+  "scenario": "sendq8192-fanout",
+  "mode": "chat",
+  "started_at": "2026-06-16T05:44:01.225226+08:00",
+  "finished_at": "2026-06-16T05:44:31.335049+08:00",
+  "duration": "30.109320583s",
+  "conns": 1,
+  "rate_per_conn": 10,
+  "rid": 10001,
+  "usrsvr": "http://127.0.0.1:8000",
+  "ws_addr": "",
+  "connect_ok": 1,
+  "connect_fail": 0,
+  "online_ok": 1,
+  "online_fail": 0,
+  "join_ok": 1,
+  "join_fail": 0,
+  "chat_ok": 101,
+  "chat_fail": 180,
+  "ping_ok": 0,
+  "ping_fail": 0,
+  "chat_qps": 3.3544430111460413,
+  "ping_qps": 0,
+  "latency_ms": {
+    "samples": 101,
+    "p50": 5.938,
+    "p95": 12.094,
+    "p99": 34.601,
+    "max": 185.296
+  },
+  "errors": {
+    "room_chat": 180
+  },
+  "notes": [
+    "单机 Docker demo 压测；数字不代表百万在线容量。",
+    "详见 doc/LOADTEST.md 与 doc/SCALE.md"
+  ]
+}

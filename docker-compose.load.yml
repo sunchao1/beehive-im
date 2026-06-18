@@ -1,0 +1,12 @@
+#!/bin/bash
+# 压测专用 compose 覆盖：提高 runner 文件句柄上限，便于 keepalive 场景。
+# 用法：docker compose -f docker-compose.yml -f docker-compose.load.yml --profile run up -d runner
+
+services:
+  runner:
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    environment:
+      BEEHIVE_LOADTEST: "1"

@@ -72,6 +72,7 @@ type ChatRoomCntx struct {
 	listend        ChatRoomLsndData    /* 侦听层数据 */
 	room           RoomMap             /* 聊天室映射 */
 	room_mesg_chan chan *MesgRoomItem  /* 聊天室消息存储队列 */
+	room_broadcast_chan chan *MesgRoomItem /* 异步广播队列（BEEHIVE_CHATROOM_ASYNC_BROADCAST=1） */
 }
 
 var g_chatroom_cntx *ChatRoomCntx /* 全局对象 */
@@ -155,6 +156,7 @@ func ChatRoomInit(conf *conf.ChatRoomConf) (ctx *ChatRoomCntx, err error) {
 
 	/* > 消息队列 */
 	ctx.room_mesg_chan = make(chan *MesgRoomItem, 100000)
+	ctx.room_broadcast_chan = make(chan *MesgRoomItem, roomBroadcastChanLen)
 
 	SetRoomSvrCntx(ctx)
 

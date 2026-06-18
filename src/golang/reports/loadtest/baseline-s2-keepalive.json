@@ -1,0 +1,29 @@
+{
+  "scenario": "dev-keepalive",
+  "mode": "keepalive",
+  "started_at": "2026-06-16T04:31:57.162998+08:00",
+  "finished_at": "2026-06-16T04:32:37.578136+08:00",
+  "duration": "40.41535675s",
+  "conns": 50,
+  "rate_per_conn": 0.2,
+  "rid": 10001,
+  "usrsvr": "http://127.0.0.1:8000",
+  "ws_addr": "",
+  "connect_ok": 50,
+  "connect_fail": 0,
+  "online_ok": 50,
+  "online_fail": 0,
+  "join_ok": 0,
+  "join_fail": 0,
+  "chat_ok": 0,
+  "chat_fail": 0,
+  "ping_ok": 300,
+  "ping_fail": 0,
+  "chat_qps": 0,
+  "ping_qps": 7.422920991536218,
+  "errors": {},
+  "notes": [
+    "单机 Docker demo 压测；数字不代表百万在线容量。",
+    "详见 doc/LOADTEST.md 与 doc/SCALE.md"
+  ]
+}

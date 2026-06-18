@@ -1,0 +1,32 @@
+{
+  "scenario": "sync-test",
+  "mode": "chat",
+  "started_at": "2026-06-16T13:38:03.977266+08:00",
+  "finished_at": "2026-06-16T13:38:14.039331+08:00",
+  "duration": "10.061773875s",
+  "conns": 50,
+  "rate_per_conn": 1,
+  "rid": 10001,
+  "usrsvr": "http://127.0.0.1:8000",
+  "ws_addr": "",
+  "connect_ok": 0,
+  "connect_fail": 50,
+  "online_ok": 0,
+  "online_fail": 0,
+  "join_ok": 0,
+  "join_fail": 0,
+  "chat_ok": 0,
+  "chat_fail": 0,
+  "ping_ok": 0,
+  "ping_fail": 0,
+  "chat_qps": 0,
+  "ping_qps": 0,
+  "errors": {
+    "iplist": 50
+  },
+  "senders": 50,
+  "rooms": 1,
+  "notes": [
+    "本地标定系数；百万在线为同架构线性外推，见 doc/INTERVIEW_CAPACITY_DEMO.md"
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "scenario": "async-1send100",
+  "mode": "chat",
+  "started_at": "2026-06-16T19:40:50.020939+08:00",
+  "finished_at": "2026-06-16T19:41:55.117174+08:00",
+  "duration": "1m5.094394792s",
+  "conns": 101,
+  "rate_per_conn": 5,
+  "rid": 10001,
+  "usrsvr": "http://127.0.0.1:8000",
+  "ws_addr": "",
+  "connect_ok": 101,
+  "connect_fail": 0,
+  "online_ok": 101,
+  "online_fail": 0,
+  "join_ok": 101,
+  "join_fail": 0,
+  "chat_ok": 219,
+  "chat_fail": 0,
+  "ping_ok": 8905,
+  "ping_fail": 1,
+  "chat_qps": 3.364344974706098,
+  "ping_qps": 136.80133333222741,
+  "latency_ms": {
+    "samples": 219,
+    "p50": 3.356,
+    "p95": 34.111,
+    "p99": 126.433,
+    "max": 1400.388
+  },
+  "errors": {
+    "ping": 1
+  },
+  "senders": 1,
+  "rooms": 1,
+  "est_downstream_qps": 339.7988424453159,
+  "notes": [
+    "本地标定系数；百万在线为同架构线性外推，见 doc/INTERVIEW_CAPACITY_DEMO.md"
+  ]
+}

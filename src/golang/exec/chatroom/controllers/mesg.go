@@ -2207,23 +2207,8 @@ func (ctx *ChatRoomCntx) roomChatHandler(
 
 	ctx.room_mesg_chan <- item
 
-	/* 2. 下发聊天室消息 */
-	ctx.room.node.RLock()
-	defer ctx.room.node.RUnlock()
-
-	nid_list, ok := ctx.room.node.m[req.GetRid()]
-	if !ok {
-		ctx.log.Error("Get node list failed! rid:%d", req.GetRid())
-		return nil
-	}
-
-	/* > 遍历rid->nid列表, 并下发聊天室消息 */
-	for idx, nid := range nid_list {
-		ctx.log.Debug("idx:%d rid:%d nid:%d", idx, req.GetRid(), nid)
-
-		ctx.sendData(comm.CMD_ROOM_CHAT, head.GetSid(), 0, uint32(nid),
-			head.GetSeq(), data[comm.MESG_HEAD_SIZE:], head.GetLength())
-	}
+	/* 2. 下发聊天室消息（同步路径；异步见 room_broadcast_chan） */
+	ctx.roomBroadcastFanOut(item)
 	return err
 }
 
@@ -2272,7 +2257,16 @@ func ChatRoomChatHandler(cmd uint32, nid uint32,
 		return -1
 	}
 
-	/* > 进行业务处理 */
+	if chatroomAsyncBroadcast() {
+		if err := ctx.roomChatEnqueueAsync(head, req, data); nil != err {
+			ctx.log.Error("Async room chat enqueue failed! errmsg:%s", err.Error())
+			ctx.roomChatFailed(head, req, comm.ERR_SYS_SYSTEM, err.Error())
+			return -1
+		}
+		return ctx.roomChatAck(head, req)
+	}
+
+	/* > 同步：fan-out 完成后再 ACK */
 	err = ctx.roomChatHandler(head, req, data)
 	if nil != err {
 		ctx.log.Error("Handle room message failed!")

@@ -2,5 +2,30 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/3rd/build/src/cJSON" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/3rd/build/src/protobuf-c" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/3rd/build/src/zlib" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/gopath/src/git.apache.org/thrift.git" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/gopath/src/github.com/astaxie/beego" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/gopath/src/github.com/beorn7/perks" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/gopath/src/github.com/cespare/xxhash" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/gopath/src/github.com/garyburd/redigo" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/gopath/src/github.com/go-sql-driver/mysql" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/gopath/src/github.com/golang/protobuf" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/gopath/src/github.com/golang/snappy" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/gopath/src/github.com/gorilla/websocket" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/gopath/src/github.com/hashicorp/golang-lru" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/gopath/src/github.com/matttproud/golang_protobuf_extensions" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/gopath/src/github.com/prometheus/client_golang" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/gopath/src/github.com/prometheus/client_model" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/gopath/src/github.com/prometheus/common" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/gopath/src/github.com/prometheus/procfs" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/gopath/src/github.com/shiena/ansicolor" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/gopath/src/golang.org/x/crypto" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/gopath/src/golang.org/x/net" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/gopath/src/golang.org/x/sys" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/gopath/src/golang.org/x/text" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/gopath/src/gopkg.in/mgo.v2" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/gopath/src/gopkg.in/yaml.v2" vcs="Git" />
   </component>
 </project>

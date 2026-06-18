@@ -1,0 +1,416 @@
+下面都是 基于你们已有压测的外推 + 架构瓶颈，不是实测承诺。数字用 区间 给，后面用 loadtest 验证即可；猜错很正常，关键是 测哪几个场景、怎么算 fan-out。
+
+0. 先固定公式（后面都用它）
+指标	公式
+Ingress QPS
+每秒 ROOM-CHAT 成功 ACK 次数（loadtest 的 chat_qps）
+Fan-out 下行/s
+≈ Ingress QPS × 同房在线连接数（互刷时每人也是接收者）
+1 发 N 看
+下行 ≈ Ingress QPS × N
+当前 demo 最好数据（SENDQ 已调，50 人同房互刷 1 msg/s）：
+
+Ingress ≈ 39 QPS
+同房 ≈ 50 人 → 下行 ≈ 39 × 50 ≈ 2 000 条/s（量级对得上）
+1. 64G VM + K8s「一 Pod 一服务」（各 1 副本）
+和现在 Docker 单 runner 比会怎样？
+大概率：Ingress 几乎不变，甚至略差 5～15%。
+
+原因	说明
+瓶颈没变
+chatroom 同步 fan-out + ACK；websocket 顺序 TravRoomSession
+拆 Pod 不 magic
+还是 1 个 chatroom、1 个 websocket 在处理热路径
+多出来的
+Pod 间 RTMQ/TCP、CNI、DNS → 延迟略增
+好处不在 QPS
+可演示 部署、探针、扩副本流程；不是单机 QPS 翻倍
+预测（50 人同房互刷，1 msg/s/conn）：
+
+指标	Docker 实测	K8s 1:1 Pod 预测
+Ingress QPS
+~39
+~30–40
+P99 (ms)
+~120
+~120–200
+Fan-out 下行/s
+~1 900–2 000
+~1 500–2 000
+可稳连连接数
+~50（已测）
+~100–300（keepalive 可能更高，同房互刷仍卡热路径）
+Fan-out 下行：仍约 Ingress × 50 ≈ 1.5k–2k/s。
+
+2. 64G VM + K8s + websocket 扩到 3 副本（Ingress 仍 1 个）
+连接经 Ingress/LB 摊到 3 个 Pod；同房消息 chatroom 仍按 nid 列表 各发一条，每个 Pod 只 fan-out 本 Pod 上的连接。
+
+50 人互刷、连接均匀在 3 Pod：
+
+指标	预测
+Ingress QPS
+~35–45（chatroom 仍 1 副本，上限类似）
+每 Pod 下行/s
+~650–750（2000/3）
+总 Fan-out 下行/s
+仍 ~2 000/s（全房间总量不变）
+P99
+可能略好（每 Pod 连接少，TravRoomSession 短）→ ~80–150 ms
+价值：证明 接入层分摊 fan-out；不是 chatroom Ingress 从 40 变 400。
+
+64G 上连接数粗算：
+
+3 × websocket Pod，每 Pod 500～1500 长连接（看 ulimit / 内存）
+Keepalive 合计 ~1 500～4 000 可试
+同房互刷 仍建议 ≤200 做对比，再大先 OOM/失败率飙
+3. 加上 异步 ACK（方案 A）之后
+变的是 chatroom worker 占用；websocket 下行能力仍是第二道墙。
+
+场景 A：50 人互刷（每人 1 msg/s）
+指标	同步 ACK（现）	异步 ACK 预测
+Ingress QPS
+~39
+~60–120（chatroom 不再等 fan-out）
+Fan-out 下行/s
+~2 000
+~3 000–6 000（×50 人）
+P99
+~120 ms
+~50–150 ms 或失败率上升（下行更猛）
+风险
+sendq drop
+广播队列满、drop 要监控
+场景 B：1 发 + N 看（更贴公告）
+N（旁观）	Ingress（同步）	Ingress（异步 ACK 预测）	Fan-out 下行/s
+50
+~3～4（10 msg/s 压测）
+~50–100
+2 500–5 000
+500
+未测
+~50–100
+2.5万～5万
+2 000
+未测
+~30–80
+6万～16万
+单 websocket Pod 按现网外推 ~2 000 下行/s：
+
+N=500：1 发 50/s → 下行 2.5万/s → 1 Pod 不够，要 10+ Pod 或 batch 优化
+异步 ACK 解放 chatroom，不会 alone 让 1 Pod 扛 10 万下行/s
+64G + 3 ws + 异步 ACK 预测（可验证目标）：
+
+场景	Ingress	总 Fan-out/s
+1 发 + 300 旁观 × 10 msg/s
+~40–80
+~1.2万～2.4万（3 Pod 分摊 ~4k～8k/Pod）
+50 互刷 × 1 msg/s
+~60–100
+~3k～5k
+4. 云厂商「按量买一天、配置往好选」
+假设 1 天预算 租例如：
+
+3～5 台 16C32G～32C64G
+或 1 台 64C128G 做 all-in-one 压测
+用途是 压测验证曲线，不是生产 SLA。
+
+4.1 推荐拓扑（钱花在刀刃上）
+1× 压测机（8C16G）跑 loadtest
+3～8× websocket（8C16G）
+1× chatroom + usrsvr + frwder（8C16G，可合并）
+1× Redis + MySQL + Mongo（8C16G 或托管 Redis）
+可选 1× Kafka（异步 ACK 进阶）
+4.2 预测量级（需实测，区间 deliberately wide）
+场景	同步 ACK	+ 异步 ACK	Fan-out 下行/s（量级）
+500 连接同房互刷 1 msg/s
+Ingress 40–80
+80–150
+2万～7.5万
+2 000 连接 keepalive
+稳定
+稳定
+心跳为主，非 fan-out
+1 发 + 2 000 看，5 msg/s
+Ingress <10
+30–80
+6万～16万
+1 发 + 10 000 看，1 msg/s
+几乎不行
+Ingress 20–50
+20万～50万（要 8～15 ws Pod + batch）
+云上「一天」合理验证目标（建议写进计划）：
+
+指标	目标（验证用）
+总 WS 连接
+2 000～5 000 同时在线
+单房 1 发 N 看
+N=500～2 000，测 fan-out 耗时 + drop
+Ingress QPS
+同步 ~50；异步 ~100+
+总 Fan-out
+1万～10万/s（看 N 和 Ingress）
+证明点
+scale websocket 1→5，P99 或 drop 下降
+不要在简历写「云上实测百万 fan-out」除非 真压出来。
+
+5. 汇总对比表（给你一张「预测表」，后面填实测）
+环境	ws 副本	场景	Ingress QPS	Fan-out 下行/s	可信度
+Docker runner（现）
+1
+50 互刷
+39 ✅
+~2 000 ✅
+已测
+64G K8s 1:1 Pod
+1
+50 互刷
+30–40
+~1.5k–2k
+待测
+64G K8s
+3
+50 互刷
+35–45
+~2k（总量）
+待测
+64G + 异步 ACK
+1–3
+50 互刷
+60–120
+3k–6k
+待测
+64G + 异步 ACK
+3
+1 发+500 看@10/s
+50–100
+2.5万–5万
+待测
+云 5×16C ws
+5
+2k 连接 1 发+1k 看
+30–80
+3万～8万
+待测
+6. 怎么验证（最小实验集，2～3 天可跑完）
+在 64G K8s 上：
+
+baseline-k8s-r1：50 conns × 1 msg/s（对齐现 Docker）
+scale-k8s-r3：同上，ws=3
+async-ack-r1：改完后重复 1
+fanout-1-N：1 发送 + 200/500 旁观，rate=5 或 10
+每个场景记录：chat_qps、join_ok、chat_ok/fail、est_downstream = chat_qps × join_ok、P99、Prometheus sendq_drop（若已埋点）。
+
+上云一天：只跑 4 + 5 副本 ws，把 N 拉到 1000～2000，看 fan-out 耗时 histogram 是否随副本数下降。
+
+7. 直接回答你的三个问题
+① K8s 一 Pod 一服务，比现 Docker 能高多少？
+→ Ingress 几乎不变（~30–40）；fan-out 仍 ~2k/s（50 人房）。价值在 运维/扩容演示，不在单机 QPS 跃升。
+
+② Fan-out 下行什么量级？
+→ Ingress × 同房人数；现网 ~2 000/s；异步 + 更高 Ingress 后 单房可到 3k～6k/s（50 人）；1 发 500 人 2.5万～5万/s 量级（要多 ws Pod）。
+
+③ 异步 ACK 能再高多少？
+→ chatroom Ingress 约 2～3 倍（3→40+、40→100+ 这类）；总 fan-out 随 Ingress 线性涨，最终由 websocket 副本数和 batch 优化封顶。
+
+④ 云上一日高配能测到什么？
+→ 合理目标是 2k～5k 连接、单房 1k～2k 旁观、总 fan-out 1万～10万/s、证明扩 ws 有效；不是 3000 万用户仿真。
+
+对不对？ → 方向对，数字是区间预测，必须实测修正；优先验证 「K8s 3 副本 vs 1 副本 P99」 和 「异步 ACK 1 发 10/s 从 3→? QPS」，这两枪最能确认模型是否成立。
+
+你要的话我可以把这张 预测表 + 4 个验证场景 写进 LOADTEST_REPORT.md 的「待验证」小节，测一条改一条。
+
+
+
+
+
+
+1. 硬上限（64G 为什么装不下 2500 万）
+估算	数量级
+目标连接
+5000 × 5000 = 2500 万
+每连接内存（Go WS + 会话 + sendq， idle）
+~30～80 KB
+仅连接态内存
+750 GB～2 TB
+64G 全给 websocket 也差 两个数量级。
+所以：不是必嗨不行，是 64G 物理上不能 2500 万长连接。
+
+2. 64G 上「5000 房」合理压法（三种）
+压法	真连接	与 5000×5000 关系	64G 可行性
+A. 5000 房 × 4～10 人
+2～5 万
+同 5000 rid，每房少量真人
+✅ 主方案
+B. 10～20 热房 × 5000 人
+5～10 万
+验证 单房 5000 fan-out
+⚠️ 吃紧，要调优
+C. 5000 房 × 5000 人全真
+2500 万
+目标拓扑
+❌ 不可能
+下面预测都基于：K8s on 64G（给集群 ~48～52G）+ 异步 ACK + ws 多副本 + 中间件占 ~10G。
+
+3. 方案 A：5000 房 × 平均 4～10 人（推荐）
+拓扑：5000 个 rid 都 JOIN 过；共 2～5 万 真 WS（每房 4～10 人，或 1000 房满员其余空房）。
+
+3.1 仅连接 + 心跳（keepalive）
+指标	预测
+可稳连
+2～4 万（ws 4～6 Pod）；激进 5 万
+CPU
+中等；Redis 5000 rid 元数据 很轻
+瓶颈
+ulimit、单 Pod 连接数、K8s 网络
+3.2 每房 1 人发、同房 N 人看（N=4～10）
+指标	预测
+若 500 房同时 各 1 发 @ 1 msg/s
+aggregate ingress ~500/s
+每房下行
+1 × 10 = 10/s
+总 fan-out
+~5000/s
+同步 ACK 现架构
+可能 200～400 ingress/s 顶
++ 异步 ACK + chatroom 3～5 Pod
+ingress ~500～1500/s 有机会
+3.3 5000 房各推 1 条 ROOM-BC（公告）
+指标	预测
+每房 10 人
+总下行 5 万次（不是 /s）
+60s 滚完 5000 房
+平均 ~830/s，64G 轻松
+10s 内滚完
+平均 ~5000/s，2～4 ws Pod 够
+收齐时间
+10s～2min（看并行 push 脚本）
+外推话术：
+「5000 房 × 10 人实测；×500 倍人数 = 5000 人/房 时，fan-out ×500，需 ws ×500 或 batch——公式在 Grafana 上线性展示。」
+
+4. 方案 B：少数热房 5000 人/房（验证 fan-out）
+例如 10 房 × 5000 人 = 5 万连接（64G 上限附近）。
+
+场景	Ingress	总 fan-out/s	预测
+1 发 + 4999 看 @ 1 msg/s
+~1
+~5000
+✅ 单房轻松
+1 发 @ 10 msg/s
+~10（同步 ACK ~3～5）
+~5 万
+⚠️ 要 batch + 2～3 ws
++ 异步 ACK
+~50～100
+~25～50 万/s
+❌ 单集群 64G 顶不住
+50 人互刷 @ 1 msg/s
+~40～80（单房）
+~20～40 万/s
+❌ 需 多 ws + batch；64G 易 OOM/高 fail
+单房 5000 人、低 ingress（公告/慢弹幕） 64G 能测：
+
+指标	预测
+1 发，ROOM-BC 1 条
+fan-out 5000 次，<1～3 s 量级（2～3 ws，batch 后）
+1 发 @ 10 msg/s
+下行 ~5 万/s，ws 4～8 Pod，P99 看 sendq
+10 个这样的热房并行 → 总连接 5 万 + 总下行 ~50 万/s → 64G 很可能崩；建议 最多 1～2 个 5000 人热房 同时压。
+
+5. 方案 C：5000 房 × 5000 人 —— 64G 能「压到什么程度」
+维度	64G 能做的	不能做的
+rid 数量
+5000 rid 创建/JOIN 记录
+每房 5000 真人
+真连接
+最多 ~5 万（建议 2～3 万 稳）
+2500 万
+等价外推
+测 每房 10 人 × 5000 房，×500 外推到 5000 人/房
+全真 2500 万
+aggregate 下行
+1～5 万/s 稳；峰值 ~10 万/s 短时
+持续百万/s
+线性外推表（给演示 PPT）：
+
+实测（64G）	外推到 5000×5000
+5000 房 × 10 人，BC 60s 滚完
+同策略，ws ×500 → 约 500 Pod（云上方案①②）
+1 房 5000 人，1 BC 2s
+5000 房并行 BC → 需 chatroom 分片 + 大量 ws
+总连接 3 万
+2500 万连接 → ~830 倍 节点（~80～120 ws 满血方案）
+6. 汇总预测表（64G VM · 优化后 · 待实测）
+场景 ID	配置	连接数	Ingress	总 fan-out/s	64G 预期
+A1
+5000 房 × 4 人 keepalive
+2 万
+—
+心跳为主
+✅ 稳
+A2
+5000 房 × 10 人 keepalive
+5 万
+—
+—
+⚠️ 边界
+A3
+500 房 × 10 人，各 1 msg/s
+5000
+300～800
+~3k～8k
+✅（异步 ACK）
+A4
+5000 房 BC，每房 10 人，60s 滚完
+5 万
+—
+avg ~830
+✅
+B1
+1 房 × 5000 人，1 BC
+5000
+1
+5k 一次
+✅
+B2
+1 房 × 5000 人，10 msg/s
+5000
+5～10
+~5 万
+⚠️ 2～4 ws
+B3
+10 房 × 5000 人 同时 BC
+5 万
+—
+~5 万 峰值
+⚠️ 极限
+C
+5000×5000 全真
+2500 万
+—
+—
+❌
+对比现 Docker demo（50 人单房 ~39 QPS）：
+64G + 多 Pod + 异步 ACK 后，aggregate 可到 数百～数千 ingress/s、数万 fan-out/s；不是 单机 39 封顶。
+
+7. 64G 建议资源切分（压测用）
+组件	建议
+websocket
+4～8 Pod，每 Pod 3000～8000 连接
+chatroom
+3～5 Pod（rid 分片）
+Redis
+4～8G limit；5000 rid key 无压力
+压测机
+放 VM 内 与 K8s 同机则 conns 减 30%；最好 另机
+不要
+10 个 5000 人热房 同时互刷
+8. 直接回答
+5000 房 × 5000 人 在 64G 上 不能全真；能压到的是：
+
+5000 个 rid + 2～5 万真连接（每房 4～10 人）
+1～2 个房 5000 人 的 fan-out / BC
+aggregate ingress 数百～1500/s、fan-out 1～5 万/s（稳态）
+5000 房滚动 BC 在 10s～2min 内发完（每房少量真人）
+2500 万在线 / 持续百万 fan-out/s → 必须 云上 80～120+ ws（见 MILLION_DEMO_PLAN.md），64G 只负责 标定公式 + 外推。
+
+预测对不对 后面用 A1、A4、B1 三个场景验证 即可；需要的话我可以把这三条写成 loadtest 场景参数写进 LOADTEST.md。

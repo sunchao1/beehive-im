@@ -23,6 +23,7 @@ docker compose --profile build run --rm builder /workspace/scripts/build-linux.s
 | 种子房间 | rid=`10001`（demo-room） |
 | 二进制版本 | `*.v.1.1`（`Makefile` 中 `VERSION=v.1.1`） |
 | 架构图 | [assets/ARCHITECTURE_DIAGRAM.md](assets/ARCHITECTURE_DIAGRAM.md) |
+| ROOM-CHAT 时序（同步/异步） | [assets/ROOM_CHAT_SEQUENCE.md](assets/ROOM_CHAT_SEQUENCE.md) |
 
 ---
 
@@ -104,7 +105,7 @@ curl -s 'http://127.0.0.1:8004/room/query?option=room-num&rid=10001'
 | seqsvr 单点？ | demo 单实例；生产可主从或 Snowflake 替代 rid/gid |
 | 怎么扩接入？ | 多 listend/websocket、共享 frwder；iplist 返回多地址；已有多节点 smoke |
 | 敏感词？ | 架构预留 TODO，当前 sprint 不做，上线前必补 |
-| 性能多少？ | 单机 demo 未压百万；见 SCALE.md；task_04 压测后填数字 |
+| 性能多少？ | 单机 demo：20 连接 P50≈6ms、50 连接 QPS≈24（见 [LOADTEST_REPORT.md](LOADTEST_REPORT.md)）；非百万在线 |
 | 和乐视弹幕关系？ | 同源架构思路；本仓库是开源复刻/演进，demo 为可复现单机栈 |
 
 ---
@@ -220,6 +221,11 @@ grep -i frwder log/monitor.log 2>/dev/null || true
 | [DEMO_SCOPE.md](DEMO_SCOPE.md) | 实现边界 |
 | [TROUBLESHOOT.md](TROUBLESHOOT.md) | Top 10 故障 + 日志地图 |
 | [SCALE.md](SCALE.md) | 单机 vs 百万在线 |
+| [K8S_DEMO_ROADMAP.md](K8S_DEMO_ROADMAP.md) | K8s 扩缩容 + Prometheus 演示 |
+| [PHASE3_PERFORMANCE_EVOLUTION.md](PHASE3_PERFORMANCE_EVOLUTION.md) | 异步 ACK / Kafka 改造与压测 |
+| [INTERVIEW_CAPACITY_DEMO.md](INTERVIEW_CAPACITY_DEMO.md) | 64G 标定 + 百万外推 + ¥100 内云上打点 |
+| [assets/CAPACITY_EXTRAPOLATION.md](assets/CAPACITY_EXTRAPOLATION.md) | 外推一页纸（填数） |
+| [assets/ROOM_CHAT_SEQUENCE.md](assets/ROOM_CHAT_SEQUENCE.md) | 同步/异步时序 |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 完整架构说明 |
 | [COMMAND.md](COMMAND.md) | 协议命令矩阵 |
 

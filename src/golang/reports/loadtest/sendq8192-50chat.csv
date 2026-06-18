@@ -1,0 +1,13 @@
+scenario,sendq8192-nonblock
+mode,chat
+duration,1m12.085877917s
+conns,50
+rate_per_conn,1.00
+chat_ok,2793
+chat_fail,13
+chat_qps,38.75
+ping_ok,0
+ping_fail,0
+latency_p50_ms,4.89
+latency_p95_ms,31.16
+latency_p99_ms,118.62

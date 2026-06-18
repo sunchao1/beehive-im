@@ -1,0 +1,172 @@
+你这计划如果 真做完 70% 以上，已经不是「看过必嗨」的候选人，而是 「带演进方案的 IM 全栈 demo 负责人」——岗位档位可以往上抬一档。下面按 做什么、补什么弱点、能面什么、多少钱 说清楚。
+
+1. 先给结论：做到位后能面什么
+档位	岗位（上海为主）	前提
+稳打
+IM 消息工程师、推送/触达后端、长连接业务后端
+乐视触达 + 必嗨 + 压测数字
+可以冲
+实时消息 / 直播弹幕后端、IM 平台后端（偏实施+性能）
++ K8s 伸缩演示 + Prometheus
+有机会
+网关/接入方向（长连接、消息网关）
++ C 关键路径能讲能改，不只 Go
+可试（看年限）
+资深 IM 后端 / 消息平台 Tech Lead 小组内
++ 弱点改造 有 before/after 压测 + 故障/权衡故事
+仍慎投
+IM 架构师/专家、基础架构 P8+
+还要 多年亿级现网、跨团队，demo alone 不够
+薪资（上海，税前月包，仍看年限）：
+
+完成度	经验	可谈区间
+计划 60%（必嗨 + 压测 + 架构图 + 乐视）
+3–5 年
+25–35K
+计划 80%（+ K8s 伸缩 + Prometheus + 1 项性能改造有数据）
+3–5 年
+30–40K
+计划 90%（+ C 核心能撕 + 改造 QPS/P99 数量级提升）
+5–8 年
+35–50K
+同上 + 能讲生产级权衡
+8 年+
+45K+ 看公司
+2. 你的计划：哪些必做、哪些别贪多
+必做（面试 ROI 最高）
+项	做到什么算过关
+架构图 + 15min demo
+双用户弹幕 + /room/push + 指 sync/async
+压测 baseline + 1 组对比
+改 SENDQ 已有；再补 1 发 N 看
+K8s（64G VM 够）
+websocket 1→3 副本，Ingress 统一入口，压测 P99/失败率对比
+Prometheus
+至少：连接数、chat QPS、fan-out 耗时、sendq drop、CPU
+Go 手撕
+roomChatHandler、TravRoomSession、AsyncSend（你改过）
+C 吃透（关键节点）
+frwder 转发 + listend 会话 + RTMQ 头/路由；不必每行，要 能画数据流
+1 亿用户题
+在线 fan-out + 离线 inbox 标准答案
+可选（时间够再做）
+C 手撕：frwd_mesg.c 里 按 nid 转发 一段即可，不必整库
+Grafana 大盘（Prometheus 之上）
+多 chatroom 分片
+建议砍或后置（性价比低）
+C 每一行 都让 AI 讲——改 「3 个文件 + 数据流图」
+64G 上仿真 3000 万连接——不现实；用 数学 + 分片压测 说明
+一次改 Kafka + Redis Cluster + 敏感词——选 1 个性能故事 做透
+3. 必嗨弱点：扩展什么，面试最响
+按 「改造前后压测差异明显 + 故事好讲」 排序：
+
+① 首选：chatroom 异步 ACK + 广播 worker（不必先上 Kafka）
+现状	改造	预期
+fan-out 完才 ACK
+校验后 立即 ACK，广播丢 goroutine/队列
+单连接 ingress 3→几十+ QPS（你们已测过同步是瓶颈）
+面试话术：「作者 2017 同步语义；我拆成 受理 ACK 与 投递 两阶段。」
+比 Kafka 更贴必嗨，改动可控，before/after 最好做。
+
+② 第二选：Kafka（或 NATS JetStream）削峰 — 聊天室→接入
+chatroom → Kafka topic(rid 分区) → 消费者按 nid 批量 push → websocket
+解决	说明
+chatroom 与 fan-out 解耦
+峰值弹幕不拖死 RTMQ worker
+可 replay / 审计
+运营公告、对账
+对比 PDF 弹幕架构
+面试官爱听
+注意：demo 可 单 broker；面试强调 热路径异步化，不是吹百万 QPS。
+
+③ 第三选：websocket 批量 fan-out
+TravRoomSession 改为 batch 写 / writev / 合并 WS 帧
+指标：1w 连接同房 的 fan-out 耗时（配合 64G 压 500～2000 真连接 外推）
+④ 第四选：限流 + 背压（产品级）
+房间/用户 QPS 限制、优先级队列（系统 BC > 用户 chat）
+偏 平台完整性，性能数字可能不如 ①② 显眼
+⑤ 不建议作为第一个改造
+换整个 RTMQ → 太大
+仅加 Redis Cluster → 运维故事多，性能故事弱
+敏感词 → 产品项，不是性能项
+推荐组合（一条简历 bullet）：
+
+「异步 ACK + 内存队列广播，ingress QPS 提升 X 倍；引入 Kafka 解耦 chatroom 与接入层，削峰填谷，并补充 Prometheus 与 K8s HPA。」
+
+4. 64G 本机 K8s：够做什么、怎么讲
+够：
+
+3～5 个 websocket 副本 × 每副本 500～2000 连接（看压测脚本）
+chatroom 1～2、Redis/MySQL、单 Kafka
+Prometheus + Grafana + scale 前后对比
+不够 / 别声称：
+
+真实 1 亿连接、单房 1 万人全真
+讲法：
+「本机验证 水平扩展曲线 和 指标驱动扩容；线性外推到 N 节点 = 生产容量规划方法。」
+
+K8s 必踩（你之前聊过的）：
+
+客户端连 Ingress/LB，不是 Pod IP
+monitor + Redis nid 路由保留
+HPA 用 自定义 metrics：websocket_connections、fan_out_latency_p99
+5. C / Go「手撕」范围（别铺太开）
+语言	建议吃透的文件/函数	面试手撕
+Go
+roomChatHandler、ChatRoomChatHandler、TravRoomSession、AsyncSend、pushHandler
+必会 伪代码 + 同步改异步
+C
+frwd_mesg.c 转发、listend 会话表、RTMQ 包头
+能讲 + 改一行路由逻辑 即可
+不用
+3rd 库、全量 Makefile、seqsvr Thrift 细节
+除非 JD 写网关
+C 关键节点吃透 = 数据流 + 关键结构体 + 1 条消息怎么走，不是 AI 解析每一行。
+
+6. 可见性（Prometheus）最小集
+面试官问「你怎么证明扩容有效」——要有图：
+
+Metric	用途
+im_ws_connections
+HPA / 演示连接分摊
+im_room_chat_ack_qps
+ingress
+im_fanout_duration_seconds
+histogram，扩容前后对比
+im_sendq_drop_total
+背压
+im_kafka_consumer_lag
+若上 Kafka
+现场演示：Grafana 一屏 + kubectl scale + loadtest 跑 60s，P99 下降或 QPS 上升。
+
+7. 简历项目名（整合乐视 + 必嗨 + 你的改造）
+「高并发 IM 消息触达与 fan-out 演进（基于 beehive-im）」
+
+乐视：触达、画像、离线 inbox
+必嗨：长连接、RTMQ、chatroom/ROOM-BC
+自研演进：异步 ACK / Kafka 削峰 / batch fan-out（选你做的）
+工程化：K8s、Prometheus、压测报告
+8. 直接回答「做到这些能面哪些岗、多少钱」
+岗位（按你计划完成度 80%+）：
+
+IM 消息工程师 / 实时消息后端
+推送 & 触达平台后端
+直播/社交 弹幕 & 系统广播 后端
+长连接 业务网关（C+Go 都讲得出时）
+云通信 / IM SaaS 服务端（偏消息通道）
+薪资（上海）：
+
+3–5 年：主攻 30–40K，保底谈 25–28K
+5–8 年：35–50K 可试，看乐视年限和表达
+16 薪 则年包 roughly 40–60W 档可作为一个目标带
+仍不是主目标： 纯架构师、RTC 专家、Java 业务 CRUD。
+
+9. 执行顺序（避免一年都在造轮子）
+Phase 1（4–6 周）：必嗨吃透 + 压测 + ROOM_CHAT 时序 + 1 亿用户答案
+Phase 2（4–6 周）：K8s 多副本 + Ingress + Prometheus + 伸缩对比
+Phase 3（6–8 周）：① 异步 ACK（必做）→ ② Kafka 或 batch fan-out（二选一）
+Phase 4（2 周）：C frwder/listend 数据流 + 面试手撕题单
+Phase 5：简历 + INTERVIEW_DEMO 15 分钟脚本
+一句话：你这计划若落地，面 IM/推送/实时消息后端（含偏网关的岗） 完全成立，薪资 上海 30–40K 是值得主攻的带（看年限）；C 吃透关键节点 + Go 手撕 + 1 个有数字的性能改造 + K8s/Prometheus 现场演示 是核心，不必 C 每行、不必一次堆满 Kafka+Cluster。
+
+你要是想落地，我可以下一步帮你写 doc/K8S_DEMO_ROADMAP.md + Phase 3 改造选型（异步 ACK vs Kafka 的 diff 清单），直接当执行 checklist。

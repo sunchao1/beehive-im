@@ -6,3 +6,6 @@ cscope.*
 tags
 bin/*
 gopath/
+reports/loadtest/*.json
+reports/loadtest/*.csv
+.tmp_pypdf/

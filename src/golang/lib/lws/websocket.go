@@ -152,13 +152,12 @@ func (ctx *LwsCntx) AsyncSend(cid uint64, data []byte) int {
 	}
 
 	select {
-	case client.sendq <- data: // 发送数据
+	case client.sendq <- data:
 		return 0
-	case <-time.After(time.Second): // 1秒超时
-		ctx.log.Error("Send data timeout! cid:%d", cid)
+	default:
+		ctx.log.Error("Send queue full! cid:%d qlen:%d", cid, len(client.sendq))
 		return -1
 	}
-	return 0
 }
 
 /******************************************************************************

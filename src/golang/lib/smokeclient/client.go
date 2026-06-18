@@ -106,9 +106,17 @@ func (c *Client) Close() {
 	}
 }
 
-func (c *Client) Send(cmd uint32, msg proto.Message) error {
+func (c *Client) Send(cmd uint32, msg proto.Message) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			c.conn = nil
+			err = fmt.Errorf("send: %v", r)
+		}
+	}()
+	if c.conn == nil {
+		return fmt.Errorf("not connected")
+	}
 	var body []byte
-	var err error
 	if msg != nil {
 		body, err = proto.Marshal(msg)
 		if err != nil {
@@ -118,22 +126,35 @@ func (c *Client) Send(cmd uint32, msg proto.Message) error {
 	return c.conn.WriteMessage(websocket.BinaryMessage, packMsg(cmd, c.SID, c.nextSeq(), body))
 }
 
-func (c *Client) WaitCmd(want uint32, timeout time.Duration) (*comm.MesgHeader, []byte, error) {
+func (c *Client) WaitCmd(want uint32, timeout time.Duration) (head *comm.MesgHeader, payload []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			c.conn = nil
+			err = fmt.Errorf("read: %v", r)
+		}
+	}()
+	if c.conn == nil {
+		return nil, nil, fmt.Errorf("not connected")
+	}
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
+		if c.conn == nil {
+			return nil, nil, fmt.Errorf("not connected")
+		}
 		c.conn.SetReadDeadline(time.Now().Add(2 * time.Second))
-		_, data, err := c.conn.ReadMessage()
-		if err != nil {
-			if ne, ok := err.(net.Error); ok && ne.Timeout() {
+		_, data, readErr := c.conn.ReadMessage()
+		if readErr != nil {
+			if ne, ok := readErr.(net.Error); ok && ne.Timeout() {
 				continue
 			}
-			return nil, nil, err
+			c.conn = nil
+			return nil, nil, readErr
 		}
-		head, payload, err := parseMsg(data)
-		if err != nil || head.Cmd != want {
+		h, p, parseErr := parseMsg(data)
+		if parseErr != nil || h.Cmd != want {
 			continue
 		}
-		return head, payload, nil
+		return h, p, nil
 	}
 	return nil, nil, fmt.Errorf("timeout cmd 0x%04X", want)
 }
@@ -189,17 +210,34 @@ func (c *Client) RoomJoin(rid uint64) (uint32, error) {
 }
 
 func (c *Client) RoomChat(rid uint64, text string) (uint32, error) {
-	_ = c.Send(comm.CMD_ROOM_CHAT, &mesg.MesgRoomChat{
+	_, code, err := c.RoomChatTimed(rid, text, 15*time.Second)
+	return code, err
+}
+
+// RoomChatTimed sends ROOM-CHAT and waits for ACK; returns end-to-end latency.
+func (c *Client) RoomChatTimed(rid uint64, text string, timeout time.Duration) (time.Duration, uint32, error) {
+	start := time.Now()
+	if err := c.Send(comm.CMD_ROOM_CHAT, &mesg.MesgRoomChat{
 		Uid: proto.Uint64(c.UID), Rid: proto.Uint64(rid), Gid: proto.Uint32(c.Gid),
 		Level: proto.Uint32(0), Time: proto.Uint64(uint64(time.Now().Unix())), Text: proto.String(text),
-	})
-	_, payload, err := c.WaitCmd(comm.CMD_ROOM_CHAT_ACK, 15*time.Second)
+	}); err != nil {
+		return 0, 0, err
+	}
+	_, payload, err := c.WaitCmd(comm.CMD_ROOM_CHAT_ACK, timeout)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 	ack := &mesg.MesgRoomChatAck{}
 	_ = proto.Unmarshal(payload, ack)
-	return ack.GetCode(), nil
+	return time.Since(start), ack.GetCode(), nil
+}
+
+func (c *Client) Ping(timeout time.Duration) error {
+	if err := c.Send(comm.CMD_PING, nil); err != nil {
+		return err
+	}
+	_, _, err := c.WaitCmd(comm.CMD_PONG, timeout)
+	return err
 }
 
 func (c *Client) RoomCreat(name, desc string) (uint64, error) {

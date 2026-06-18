@@ -25,6 +25,7 @@ import (
  ******************************************************************************/
 func (ctx *ChatRoomCntx) task() {
 	go ctx.taskRoomMesgChanPop()
+	go ctx.taskRoomBroadcastPop()
 	go ctx.taskRoomMesgQueueClean()
 
 	/* 每1秒执行一次任务 */

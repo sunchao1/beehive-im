@@ -13,7 +13,7 @@
 | 网关 | 1× frwder | 无多实例分片 |
 | Redis | 单节点 | 无 Cluster |
 | seqsvr | 单点 Thrift | rid/gid 单点分配 |
-| 压测 | task_04 待填 baseline | 预期 **数百～数千 WS** 量级 |
+| 压测 | task_04 baseline | 见 [LOADTEST.md](LOADTEST.md) |
 
 **适合讲**：分层、RTMQ、rid→nid 路由、群聊 fan-out、错误路径。  
 **不适合讲**：「本机已验证百万 QPS/百万连接」。
@@ -61,7 +61,8 @@ flowchart LR
 | 5 | 先广播后异步写 Mongo | 降低写阻塞 |
 | 6 | 限流、背压、敏感词 | 上线前必做 |
 | 7 | seqsvr HA 或分布式 ID | 消除单点 |
-| 8 | K8s + HPA（连接数/QPS 指标） | task_04 压测出 baseline 后 |
+| 8 | K8s + HPA（连接数/QPS 指标） | task_04 压测出 baseline 后；详见 [K8S_DEMO_ROADMAP.md](K8S_DEMO_ROADMAP.md) |
+| 9 | 异步 ACK / Kafka 削峰 | 见 [PHASE3_PERFORMANCE_EVOLUTION.md](PHASE3_PERFORMANCE_EVOLUTION.md) |
 
 ---
 
@@ -88,4 +89,4 @@ flowchart LR
 - [ARCHITECTURE.md](ARCHITECTURE.md) §11 缺口清单
 - [DEMO_SCOPE.md](DEMO_SCOPE.md) 实现边界
 - [INTERVIEW_DEMO.md](INTERVIEW_DEMO.md) Q&A
-- task_04：`doc/LOADTEST.md`（待 task_04 完成后补充实测数字）
+- task_04：[LOADTEST.md](LOADTEST.md) + [LOADTEST_REPORT.md](LOADTEST_REPORT.md)

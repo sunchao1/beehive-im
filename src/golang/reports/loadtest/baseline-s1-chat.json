@@ -1,0 +1,38 @@
+{
+  "scenario": "baseline-s1-room-chat",
+  "mode": "chat",
+  "started_at": "2026-06-16T04:32:46.459133+08:00",
+  "finished_at": "2026-06-16T04:33:30.184184+08:00",
+  "duration": "43.725320917s",
+  "conns": 50,
+  "rate_per_conn": 1,
+  "rid": 10001,
+  "usrsvr": "http://127.0.0.1:8000",
+  "ws_addr": "",
+  "connect_ok": 50,
+  "connect_fail": 0,
+  "online_ok": 50,
+  "online_fail": 0,
+  "join_ok": 32,
+  "join_fail": 0,
+  "chat_ok": 929,
+  "chat_fail": 0,
+  "ping_ok": 0,
+  "ping_fail": 0,
+  "chat_qps": 21.246270593723956,
+  "ping_qps": 0,
+  "latency_ms": {
+    "samples": 929,
+    "p50": 7.8,
+    "p95": 879.408,
+    "p99": 2102.006,
+    "max": 4065.054
+  },
+  "errors": {
+    "panic": 25
+  },
+  "notes": [
+    "单机 Docker demo 压测；数字不代表百万在线容量。",
+    "详见 doc/LOADTEST.md 与 doc/SCALE.md"
+  ]
+}

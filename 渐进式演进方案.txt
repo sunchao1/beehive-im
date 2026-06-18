@@ -1,0 +1,35 @@
+简历四条（定稿）
+消息触达与在线推送平台 | 乐视 | 20XX.XX – 20XX.XX
+
+负责面向 千万级日活、亿级注册用户 的 消息触达，按用户画像与 在线/离线 分流；离线通道采用 UID 分表 inbox + 异步灌库，保障全量用户 eventual 触达。
+
+主导触达链路 2.0 演进：在线用户由「写库拉取」升级为 长连接接入层 fan-out；引入 业务分片、异步广播队列、接入水平扩展，与离线 inbox 双通道并行。
+
+完成架构重构与压测验证：同等灰度规模下，在线段全量触达收尾由约 10 分钟级缩短至约 1 分钟内（约 50 秒级）；同房 fan-out 场景下 chat 吞吐 ~24 → ~39 QPS，发送端 P99 ~1.9s → ~119ms（50 连接压测，SENDQ + 热路径优化）。
+
+架构支持 百万级同时在线 水平扩展：基于 K8s 标定 每接入 Pod 长连接数与 fan-out 能力，可推算生产接入规模；配套 Prometheus 监控连接数、下行延迟与队列背压。
+
+完整版（自我介绍、关键词、更短 2 条版）见 doc/RESUME_BULLETS.md。
+
+异步 ACK 改造（已完成）
+代码：broadcast_async.go，环境变量 BEEHIVE_CHATROOM_ASYNC_BROADCAST=1
+行为：校验后 入队即 ACK，fan-out 在 taskRoomBroadcastPop 后台执行
+chatroom 已在容器内编译成功（需 GOPROXY=https://goproxy.cn,direct）
+对比脚本：scripts/loadtest-sync-vs-async.sh（已修复：用 pkill -x 避免误杀 frwder，并增加 iplist 健康检查）
+跑同步 vs 异步对比（当前 runner 在重启 chatroom 后 room_join 失败，需先恢复栈）：
+
+./scripts/up-demo.sh          # 恢复完整 9 进程栈
+./scripts/loadtest-sync-vs-async.sh
+# 报告：reports/loadtest/compare-sync-ack.json / compare-async-ack.json
+面试时可用的数字对照
+指标	改造前（SENDQ=128）	改造后（SENDQ=8192 + 非阻塞）
+50 人同房 1 msg/s
+~24 QPS，P99 ~1923ms
+~39 QPS，P99 ~119ms
+业务叙事
+灌库触达 ~10 分钟级
+在线 fan-out ~50 秒级
+异步 ACK 的 before/after 需栈恢复后跑 loadtest-sync-vs-async.sh 填入第 3 条括号说明；预期异步模式下 发送端 P99 进一步下降（fan-out 不再挡 ACK）。
+
+需要我帮你执行 up-demo.sh 并重跑对比压测吗？
+

@@ -1,0 +1,135 @@
+视频播放行为 Kafka 异步消费架构设计（用户分片隔离，避免同用户并发消费）
+核心约束
+日行为数据 1 亿条播放日志，全部投递 Kafka；
+强约束：同一个用户的多条观看记录，绝对不能被多个 goroutine / 多进程并发处理（积分、等级连续计算，并发会导致脏写、积分错乱）；
+架构分层：Master 调度节点 + 一组 Worker Consumer 消费节点；
+语言：Go 消费服务，Kafka 作为消息总线。
+一、底层 Kafka 基础分片设计（解决同用户串行消费根本方案）
+1. Kafka 分区路由规则（核心，不需要 Master 也能天然隔离用户）
+Kafka 消息发送时按 user_id 做 hash 取模分区
+plaintext
+partitionIndex = hash(user_id) % partitionNum
+效果：
+同一个 user_id 的所有播放消息，永久落在同一个 Kafka 分区。
+Kafka 同一分区天然只允许一个消费者拉取（同一消费组下），从根源杜绝多进程 / 协程并发处理同一用户数据。
+这是业界标准方案，比自研 Master 分发更稳定、无单点故障。
+分区数量选型（日 1 亿消息）
+日 1 亿条，峰值按流量 30 倍预估（短视频晚高峰集中爆发）：
+日 1 亿 → 峰值 QPS ≈ 1e8 / 86400 * 30 ≈ 34722 QPS
+单 Kafka 分区稳定消费上限：3000~5000 QPS（Go 批量消费）
+分区数 = 34722 / 4000 ≈ 9，预留扩容直接设置 16 个 partition
+2. 消费组设计
+所有 Go 消费进程使用同一个消费组 ID
+Kafka 分配策略：分区均衡分配给组内 consumer 进程，一个分区只会绑定一个进程。
+例：16 分区，部署 4 个 Go 消费进程，每个进程独占 4 个分区。
+天然串行保证
+一个分区内消息有序；
+一个用户永远在同一个分区；
+一个分区只被一个进程消费；
+进程内部单分区单 goroutine 串行处理用户消息；
+→ 完全满足「同一用户不并发处理」硬性要求。
+二、Master + Consumer 分层架构（贴合你的需求）
+你要求区分 Master 节点 + 一批 Consumer Worker，两种实现方案：
+方案 A（推荐，Kafka 原生分区为主，Master 做管控调度）
+架构分层
+Master 管控节点（无消息消费，仅调度）
+职能：
+消费集群注册 / 心跳上报；
+动态扩缩容管控、负载均衡；
+规则热更新（积分配置、黑名单用户、限流阈值下发）；
+监控聚合：消费堆积、延迟、处理 QPS、DB 写入成功率；
+死信队列管理（处理失败消息重放 / 归档）；
+部署：单实例 + 备用节点（etcd 存储集群元数据，避免单点）；
+不参与 Kafka 消息拉取，无业务计算。
+Consumer Worker 消费节点（真正处理消息）
+每个 Go 进程结构：
+plaintext
+Go Worker进程
+├─ 分区分配管理器（Kafka client接收分配的partition列表）
+├─ 每个partition独立goroutine（串行消费该分区消息）
+│  ├─ 批量拉取Kafka消息（批量fetch提升吞吐）
+│  ├─ 用户维度聚合（同一用户多条播放记录合并计算积分）
+│  ├─ DB/缓存批量更新用户积分、等级
+│  └─ 批量同步offset ack（减少网络交互）
+└─ 指标上报goroutine（推送监控数据到Master）
+数据流转全链路
+前端 / 埋点服务 → Kafka Producer（按 user_id hash 分发到 partition）
+Kafka Topic（16 分区）
+Go Consumer Worker 集群（同消费组，独占分区）
+每个分区 goroutine 串行处理，同用户顺序执行积分逻辑
+计算结果写入 Redis（临时用户积分缓存）+ MySQL（落地用户等级）
+处理成功批量 ack offset；失败投递死信 topic
+Worker 定时上报负载、堆积指标到 Master
+Master 监控告警、下发配置、管控集群扩缩容
+方案 B（纯 Master 分发模式，不推荐，仅满足你字面需求）
+如果强制要求Master 拉取所有消息再分发给下游 Consumer，放弃 Kafka 分区原生能力：
+Master 统一消费全部分区；
+内置分片器：user_id hash 绑定固定 Worker；
+通过 GRPC / 消息队列把用户消息转发给指定 Consumer；
+致命缺点
+Master 单点瓶颈，峰值 3 万 + QPS 极易阻塞；
+多一层转发，延迟翻倍；
+Master 宕机整个消费链路中断；
+生产环境一律放弃该方案，优先方案 A。
+三、Go Consumer 内部并发模型（保证用户串行）
+关键设计：一个分区 = 一个串行 goroutine
+禁止多协程并发消费同一个 partition，核心代码逻辑简述：
+go
+运行
+// 分配到分区后，启动独立消费协程
+func startPartitionConsumer(partition int) {
+    for {
+        // 批量拉取消息
+        msgs := client.FetchMessages(500)
+        // 按user_id分组
+        userMsgMap := groupByUserID(msgs)
+        // 同一用户消息顺序处理，串行无并发
+        for uid, msgList := range userMsgMap {
+            calcUserPoint(uid, msgList)
+            updateUserLevel(uid)
+        }
+        // 批量ack，避免每条ack损耗
+        client.CommitOffsets()
+    }
+}
+配套缓存优化
+用户积分计算高频读写，不能直打 MySQL：
+Redis Hash 存储用户当前积分、成长值、等级；
+批量聚合后异步落库 MySQL（定时 / 定量刷盘）；
+Redis 分片进一步打散用户读写压力。
+死信处理机制
+消息处理异常（DB 超时、数据格式错误）不 ack；
+重试 3 次仍失败，转发至 play_log_dlq 死信 Topic；
+Master 提供后台工具，支持死信重放、导出排查。
+四、集群部署规模 & 支撑吞吐量测算
+基础指标
+日播放行为：1 亿条
+峰值 QPS：≈34722
+单 Go Worker 进程（4 分区）稳定处理 QPS：12000~16000
+部署节点数量
+单进程上限 15000 QPS，峰值 34722 QPS：
+至少 3 台 Go Consumer Worker，推荐部署 4 台冗余，应对流量突增、节点重启。
+4 台 Worker，16Kafka 分区 → 每台独占 4 个分区
+总理论吞吐：4 × 15000 = 60000 QPS，覆盖 3.4 万峰值，预留近一倍冗余。
+Master 节点部署
+Master 管控：2 实例（主备，etcd 共享元数据），不需要高配置，侧重监控、HTTP 接口、配置下发。
+存储层支撑能力
+Redis 集群：分片 16~32 片，承载用户积分实时读写；
+MySQL：分库分表，按 user_id 取模分片，定时批量同步积分等级数据；
+系统承载上限
+现有架构极限支撑：
+峰值 QPS：60000 条 / 秒
+日处理消息量：60000 * 86400 = 51.84 亿条 / 天
+完全覆盖当前 1 亿日消息，未来流量增长仅需新增 Go Consumer 进程，Kafka 分区同步扩容即可线性扩容。
+五、核心优势总结
+天然用户串行隔离：user_id hash 分区，从消息队列层保证同用户不会多进程 / 协程并发处理，无积分错乱风险；
+高吞吐：Go 批量消费 + 批量 ack+Redis 缓冲，单进程万级 QPS；
+无单点故障：Master 仅管控，消费逻辑由 Kafka 分布式承担，Worker 无状态可随意扩缩；
+可观测：Master 统一收集堆积、延迟、失败率指标，配套告警；
+线性扩容：流量上涨只增加 consumer 节点、扩容 kafka 分区即可。
+六、关键避坑点
+禁止同一分区开多个 goroutine 并发消费，会破坏用户消息时序；
+必须批量 commit offset，逐条 ack 会大幅降低吞吐；
+积分计算依赖中间缓存，避免直接高频写 MySQL 拖垮数据库；
+Master 只做管控，不转发业务消息，防止单点瓶颈；
+消费关闭前优雅 Commit offset，避免重复计算积分。

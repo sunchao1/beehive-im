@@ -1,0 +1,64 @@
+11. 若要把必嗨「弹幕能力」向 PDF 靠拢，改什么？
+按 ROI 排序（不必动整个 IM）：
+
+优先级	改动	对应 PDF 能力
+P0
+chatroom 热路径 异步化（先 ACK，再 Kafka/内存队列 fan-out）
+Kafka 削峰
+P0
+敏感词 + 房间/用户 QPS 限流
+Worker + Redis INCR
+P1
+接入层 批量下发（C listend writev / WS 帧合并）
+Gateway 优化
+P1
+Redis room→nid→conn 级路由（或接入层订阅 room）
+精准推送
+P2
+独立 Dispatcher 服务（从 chatroom 拆 room 路由）
+五层架构
+P2
+历史弹幕 Redis List 热数据 + Mongo 冷存
+进房秒开
+P3
+Consul/Nacos 或 K8s Service 替代 monitor 部分职责
+
+
+
+一句话结论
+你的目标	更合适的选择
+只做直播弹幕、冲 5 万 QPS / 百万在线
+PDF 那套更好（专为峰值设计）
+要做完整 IM（私聊、群、推送、运营）
+必嗨更好（功能全、一套协议）
+面试 / 学架构 / 本地 demo
+必嗨更好（能跑、能讲、能改）
+直接上生产扛大活动峰值
+PDF 思路更好，必嗨现状不够（缺 Kafka、限流、敏感词、压测）
+为什么 PDF 在「纯弹幕峰值」上更强
+Kafka 削峰：瞬间 10 倍流量不会打挂 chatroom
+Gateway writev / 批量推： syscall 和 CPU 更省
+Worker 专门做过滤、限流：热路径清晰
+容量有数：25 个 Gateway、6～8 个 Worker，可照着扩
+这些是 「单场景、冲指标」 的优解。
+
+为什么必嗨在「IM 产品」上更合适
+不只有弹幕：群聊、私聊、推送、HTTP 运营一套都有
+已经能跑通全链路：Docker、smoke、demo/web
+nid + RTMQ 模型：适合 IM 多业务共用一条总线
+和 PDF 同源思路：接入分片 + Redis 路由，不是另一套哲学
+代价是：弹幕热路径还是同步 fan-out，离 PDF 的「百万 QPS 弹幕专机」还有距离。
+
+实际建议（结合你现在的路径）
+你已经在 fork 必嗨 + 补 demo + 准备 K8s，继续必嗨是 ROI 最高 的：
+
+产品形态：IM 架构师 / 全栈 IM，不是「只写弹幕引擎」
+不必二选一：PDF 当 弹幕子系统的目标蓝图，往必嗨的 chatroom 热路径 借 Kafka + 限流 + 批量推 即可
+面试怎么说：
+「必嗨是通用 IM 底座，聊天室承担弹幕」
+「若单房 5 万 QPS，我会在 chatroom 后加异步队列、接入层 batch 下发，和业界弹幕流水线一致」
+直接回答「哪个好」
+论设计完整度（纯弹幕、百万在线）：PDF 更好
+论可落地、可演示、可扩展成 IM 产品：必嗨 更好
+论你现在该不该换栈重写 C+++Kafka：不要换；在必嗨上演进更划算
+最好的是：以必嗨为主干，把 PDF 里 P0 的三件事（异步削峰、限流敏感词、接入批量推）逐步补进 chatroom + listend。 这样既保留 IM 全貌，又在弹幕上向 PDF 靠拢。

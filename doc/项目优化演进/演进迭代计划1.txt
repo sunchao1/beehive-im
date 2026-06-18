@@ -1,0 +1,130 @@
+优化路线图（建议顺序）
+P0 — 1～3 天，改少、收益大（面试前必做）
+#	改什么	为什么	预期
+1
+多 broadcast worker
+现在 taskRoomBroadcastPop 只有 1 个 goroutine
+1 发 N 看 ingress 3.4 → 5+（接近目标）
+2
+按 rid 分片广播队列
+rid % N 多个 chan + N 个 worker，同房有序、不同房并行
+多房场景 QPS 线性涨
+3
+Prometheus 3 个指标
+broadcast_queue_depth、fanout_lag_ms、sendq_drop_total
+面试能指 Grafana 讲背压
+实现要点（broadcast_async.go）：
+
+// 现在：1 个 room_broadcast_chan + 1 个 taskRoomBroadcastPop
+// 目标：N 个 chan，启动 N 个 worker，入队时 rid % N
+工作量：~50 行，1 天内可压测验证。
+
+P1 — 3～7 天，接入层（对齐豆包「1500 上行」的分层标定）
+#	改什么	为什么	预期
+4
+websocket 批量 fan-out（方案 C）
+TravRoomSession 逐 cid 回调；可 先收集 cid 列表，再批量入 sendq
+单 Pod fan-out ×2～5
+5
+慢连接隔离
+sendq 满的连接踢到 slow 队列或 drop，避免拖 P99
+P99 更稳
+6
+K8s 水平扩 websocket
+连接和 fan-out 分摊到多 Pod
+L1 总连接 5k～2w
+lws/comm.go 里 send_routine 已有 批量 drain sendq，但上游仍是 逐 cid 调用 AsyncSend，batch 收益在减少锁和调度次数。
+
+面试话术：
+
+「异步 ACK 解决 ingress；fan-out 瓶颈在接入 TravRoomSession，用 batch + 多 ws Pod 水平扩。」
+
+P2 — 1～2 周，架构级（简历第二条 bullet 的「2.0 演进」）
+#	改什么	为什么	预期
+7
+chatroom 按 rid 分片
+单 chatroom 实例是 ingress 天花板
+ingress 线性扩展
+8
+ROOM-BC 只推本房 nid
+push.go 扫全集群是已知弱点
+L3 多房公告从分钟级 → 秒级
+9
+Kafka/NATS 削峰（方案 B）
+chatroom 只写 topic；consumer 按 nid 下行
+峰值 lag 可观测，不拖死 worker
+拓扑：
+
+ROOM-CHAT → chatroom → Kafka(im.room, key=rid)
+                              ↓
+                    consumer → frwder → websocket batch fan-out
+两周内：7 + 8 写代码；9 口述 + 架构图 即可（不必全实现）。
+
+P3 — 产品/生产向（demo 可不做，面试加分）
+#	改什么	作用
+10
+房间/用户 token bucket 限流
+防单房打爆
+11
+ROOM-BC 优先级 > ROOM-CHAT
+触达场景更贴乐视
+12
+超大房客户端合并/采样
+单房百万观众的行业做法
+按场景的优化重点
+场景	已做	下一刀	再往后
+50 人互刷
+SENDQ + 异步 ACK
+收益有限（fan-out 总量不变）
+多 ws Pod
+1 发 N 看 ★
+异步 ACK（0.7→3.4 QPS）
+多 broadcast worker + ws batch
+rid 分片
+5k～2w 连接
+未测
+K8s 多 ws + L1 keepalive
+调 memory/FD/GC
+100 房公告
+未测
+修 push 扫 nid
+并行 push 脚本
+两周内建议执行顺序（结合你的面试计划）
+本周
+  ① 多 broadcast worker（P0-1）→ 重跑 1发100看，目标 ≥5 QPS
+  ② 埋 3 个 Prometheus 指标（P0-3）
+  ③ VM + K8s 起栈（Phase C）
+下周
+  ④ websocket batch fan-out（P1-4）
+  ⑤ L1 keepalive 标 C_pod
+  ⑥ L2/L3 压测 + 外推表
+  ⑦ ROOM-BC push 优化（P2-8，时间够再做）
+Kafka（P2-9）：两周排期紧就 不实现，面试说「RTMQ 做命令路由，Kafka 做同房广播削峰，各管一段」。
+
+和「豆包 1500 上行」怎么对齐
+优化后	能拿什么数	口径
+P0 做完
+1 发 100 看 ~5+ ingress
+业务 ACK QPS（有 fan-out）
+P1 + K8s
+L1 C_pod = 5k～10k 连接/Pod
+纯连接容量
+单独压 ping
+U_pod = 几百～上千/s
+纯上行，对标豆包 1500
+三层分开写进外推表，就不会被「人家 1500 你怎么 3.4」问住。
+
+一句话总结
+阶段	核心
+已完成
+SENDQ、非阻塞发送、异步 ACK
+现在最该做
+多 broadcast worker + ws 批量 fan-out
+K8s 阶段
+多 ws Pod 标 C_pod，不是单 Pod 硬扛
+架构故事
+rid 分片 + Kafka 削峰 + ROOM-BC 精准推送
+建议 先做 P0-1（多 broadcast worker），半天可改、半天可压测，对 1 发 100 看场景最直接。
+
+要的话我可以直接改 broadcast_async.go，做成 BEEHIVE_BROADCAST_WORKERS=4 可配置并帮你重跑对比。
+

@@ -418,7 +418,9 @@ func LsndUpMesgPushHandler(cmd uint32, nid uint32, data []byte, length uint32, p
 		return -1
 	}
 	p := &LsndRoomDataParam{ctx: ctx, data: data}
-	ctx.chat.TravSession(LsndRoomSendDataCb, p)
+	ctx.chat.TravSession(func(sid uint64, cid uint64, _extra interface{}, param interface{}) int {
+		return LsndRoomSendDataCb(sid, cid, param)
+	}, p)
 	return 0
 }
 
