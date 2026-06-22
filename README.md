@@ -27,6 +27,7 @@ docker compose --profile build run --rm builder /workspace/scripts/build-linux.s
 | [Phase3 性能改造选型](doc/PHASE3_PERFORMANCE_EVOLUTION.md) | 异步 ACK vs Kafka、压测对比 |
 | [百万演示容量规划](doc/MILLION_DEMO_PLAN.md) | 反向机器数、一日云成本、三种「百万」口径 |
 | [低成本面试容量演示](doc/INTERVIEW_CAPACITY_DEMO.md) | 64G 标定 + 外推 + ¥100 内云上打点一次 |
+| [弹幕核心接口手册](doc/弹幕核心接口.md) | 按接口熟悉弹幕/ROOM 链路代码入口 |
 | [流程图与术语手册](doc/FLOWS_AND_GLOSSARY.md) | 全景流程、各子系统、术语表 |
 | [上行→面板详细流程图](doc/assets/PUSH_TO_PANEL_FLOW.md) | ROOM-CHAT / ROOM-BC 端到端 Mermaid 图 |
 | [7 月 IM 四周 OKR 检查表](doc/JULY_IM_OKR_CHECKLIST.md) | 每周 deliverable、可投简历线、45min Runbook |

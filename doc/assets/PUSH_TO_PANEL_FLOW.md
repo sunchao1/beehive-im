@@ -2,7 +2,7 @@
 
 > **「用户消息面板」** = 客户端 UI（如 `demo/web` 的 `#log` 区域）：收到 `ROOM-CHAT` / `ROOM-BC` 后解析 Protobuf，渲染一行文字。  
 > **本文两条主路径**：① 用户发弹幕（ROOM-CHAT） ② 运营/系统 push（HTTP `/room/push` → ROOM-BC）。  
-> **图例**：🔴 同步阻塞　🟢 异步后台　⚪ 非阻塞入队
+> **图例**：**↑ 上行** Client→服务端　**↓ 下行** 服务端→Client　**服务** usrsvr / websocket / frwder / chatroom　🔴 同步阻塞　🟢 异步后台　⚪ 非阻塞入队
 
 ---
 

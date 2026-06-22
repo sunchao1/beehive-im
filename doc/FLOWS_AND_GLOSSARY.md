@@ -2,7 +2,18 @@
 
 > **用途**：一文档看清 beehive-im 全貌——整体拓扑、各子系统流程、端到端业务、术语解释。  
 > **读者**：开发、压测、面试准备。  
-> **相关**：[ARCHITECTURE.md](ARCHITECTURE.md) · [assets/ARCHITECTURE_DIAGRAM.md](assets/ARCHITECTURE_DIAGRAM.md) · [assets/ROOM_CHAT_SEQUENCE.md](assets/ROOM_CHAT_SEQUENCE.md) · [REDIS.md](REDIS.md) · [PROTOCOL.md](PROTOCOL.md)
+> **相关**：[ARCHITECTURE.md](ARCHITECTURE.md) · [assets/ARCHITECTURE_DIAGRAM.md](assets/ARCHITECTURE_DIAGRAM.md) · [assets/ROOM_CHAT_SEQUENCE.md](assets/ROOM_CHAT_SEQUENCE.md) · [REDIS.md](REDIS.md) · [PROTOCOL.md](PROTOCOL.md) · **[弹幕核心接口.md](弹幕核心接口.md)**（含 ↑↓ 方向 + **服务** 总表）
+
+**图例**（与 [弹幕核心接口 §0](弹幕核心接口.md#0-图例方向--服务全文统一) 一致）：
+
+| 标记 | 含义 |
+|------|------|
+| **↑ 上行** | Client → 接入 → frwder **FORWARD** → 业务 |
+| **↓ 下行** | 业务 → frwder **BACKEND** → 接入 → Client（含 fan-out、ACK） |
+| **⇄ HTTP** | REST 短连接（register、iplist、`/room/push`） |
+| **⚙ 内部** | Redis / Mongo / monitor，不直达客户端 |
+
+**弹幕主服务**：**usrsvr**（注册）→ **websocket**（接入）→ **frwder**（路由）→ **chatroom**（业务/fan-out）→ **frwder** → **websocket**（推面板）。
 
 ---
 
@@ -670,6 +681,8 @@ flowchart TB
 
 | 文档 | 内容 |
 |------|------|
+| **[弹幕核心接口.md](弹幕核心接口.md)** | 弹幕接口手册（**↑↓ 方向 + 服务链路** + handler 对照） |
+| [assets/PUSH_TO_PANEL_FLOW.md](assets/PUSH_TO_PANEL_FLOW.md) | 上行→面板详细时序（两条 push 路径） |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 技术架构长文 |
 | [assets/ARCHITECTURE_DIAGRAM.md](assets/ARCHITECTURE_DIAGRAM.md) | 一页架构图 |
 | [assets/ROOM_CHAT_SEQUENCE.md](assets/ROOM_CHAT_SEQUENCE.md) | ROOM-CHAT 逐步时序（同步/异步） |
