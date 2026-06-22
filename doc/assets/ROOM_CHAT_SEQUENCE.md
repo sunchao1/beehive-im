@@ -1,7 +1,8 @@
 # ROOM-CHAT 时序图（逐步标注 同步 / 异步）
 
 > 面试用：每一跳都标明 **🔴 同步**、**🟢 异步**、**⚪ 非阻塞入队**。  
-> 代码：`chatroom/controllers/mesg.go`、`websocket/controllers/mesg.go` / `upmesg.go`。
+> 代码：`chatroom/controllers/mesg.go`、`websocket/controllers/mesg.go` / `upmesg.go`。  
+> **寻址模型**：[弹幕系统的名词解释.md §5 分层 Fan-out 寻址](../弹幕系统的名词解释.md#5-分层-fan-out-寻址从-rid-到-cid)（步骤 9～14 对应 ① 拓扑路由 + ② 会话展开 + ③ 连接投递）。
 
 ---
 
@@ -29,12 +30,12 @@
 | 6 | worker 取出消息 | chatroom Proxy | 🔴 | `handle_routine`（可 **10 并发**，但 **单条消息** 仍同步跑完 handler） |
 | 7 | 解析 + 校验 | chatroom | 🔴 | `parseRoomChatReq` / `validateRoomChat` |
 | 8 | 历史消息入队 | chatroom → chan | 🟢 | `room_mesg_chan <- item` **仅入队** |
-| 9 | 查 rid→nid 列表 | chatroom | 🔴 | 内存 `room.node` + `RLock` |
-| 10 | 按 nid fan-out | chatroom → frwder | 🔴 | **顺序** `for nid := range nid_list { sendData }` |
+| 9 | 查 rid→nid 列表 | chatroom | 🔴 | 内存 `room.node` + `RLock`（**① 拓扑路由**） |
+| 10 | 按 nid fan-out | chatroom → frwder | 🔴 | **顺序** `for nid := range nid_list { sendData(cid=0) }` |
 | 11 | 每条 sendData | chatroom | ⚪ | 内部 `frwder.AsyncSend`，不等待 websocket 播完 |
 | 12 | frwder 按 nid 下行 | frwder → websocket | 🔴 | 路由到各接入节点 |
 | 13 | 下行 ROOM-CHAT handler | websocket | 🔴 | `LsndUpMesgRoomChatHandler` |
-| 14 | 同房逐连接推送 | websocket | 🔴 | **顺序** `TravRoomSession` → 每 cid 一次 |
+| 14 | 同房逐连接推送 | websocket | 🔴 | **② 会话展开** `TravRoomSession(rid,gid)` → 每 cid **③** `AsyncSend` |
 | 15 | 每连接入 sendq | websocket | ⚪ | `lws.AsyncSend`；send_routine 稍后写 WS |
 | 16 | WS 写到客户端 | websocket → Client | 🔴 | 在 **send_routine** 里；与 14 解耦但仍在同进程 |
 | 17 | roomChatAck | chatroom | 🔴 | **10～16 全部完成后** 才 ACK |

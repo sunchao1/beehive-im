@@ -64,12 +64,14 @@ flowchart TB
   USR --> R
 ```
 
-## 数据流（聊天室弹幕）
+## 数据流（聊天室弹幕 · 分层 Fan-out 寻址）
 
 1. 客户端 `ONLINE` → websocket → frwder → **usrsvr**（写 Redis 会话）
-2. `ROOM-JOIN rid` → frwder → **chatroom**（写 rid↔sid↔nid 拓扑）
-3. `ROOM-CHAT` → chatroom 按 **rid→nid 列表** fan-out → 各 websocket → 对端客户端
-4. 可选：`POST /room/push` → **ROOM-BC** 系统弹幕
+2. `ROOM-JOIN rid` → frwder → **chatroom**（写 rid↔sid↔nid 拓扑；websocket ChatTab 写 rid↔gid↔(sid,cid)）
+3. `ROOM-CHAT` → **①** chatroom **RID→[NID]** → frwder → **②** 各 websocket `TravRoomSession(rid,gid)` → **③** `AsyncSend(cid)` → 客户端
+4. 可选：`POST /room/push` → **ROOM-BC** 系统弹幕（下行 ②③ 同 ROOM-CHAT）
+
+**详述**：[弹幕系统的名词解释.md](../弹幕系统的名词解释.md) §5
 
 ## 与群聊/推送的区别
 

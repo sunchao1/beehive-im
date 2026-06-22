@@ -43,6 +43,8 @@ chatroom fan-out 读 rid→nid，不是 K8s Service DNS
 
 **不能**用 Nacos 替代 frwder；**不能**删掉 monitor 注册。
 
+**扩缩容与分层 Fan-out 寻址**：scale websocket 后新 Pod 获得新 **NID** → monitor 注册 → JOIN 写入 `room:rid:*:to:nid` → chatroom **① 拓扑路由** 自动覆盖新节点；fan-out **② 会话展开** 仍在本 Pod ChatTab 完成。详见 [弹幕系统的名词解释.md](弹幕系统的名词解释.md) §5。
+
 ### 2.3 建议 K8s 拓扑（Phase 2 最小集）
 
 ```mermaid

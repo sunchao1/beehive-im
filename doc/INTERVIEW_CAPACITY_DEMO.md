@@ -9,7 +9,7 @@
 
 1. **「百万同时在线」** = **100 万条长连接** 分摊在 **N 台接入机** 上，人均消息 **很低**；不是 **单房 100 万人互刷**。  
 2. **本地压测** 测的是 **单机/Pod 容量系数**（每 Pod 连接数、每 Pod fan-out、每 chatroom ingress），不是直接把 1 万连接说成 100 万。  
-3. **百万节点数** = **实测系数** 代入公式；可选 **花一次 ¥100 内** 在云上复现 **同场景略大规模**，报告 **永久带进面试**。
+3. **百万节点数** = **实测系数** 代入公式；架构上依赖 **分层 Fan-out 寻址**（chatroom RID→NID + websocket 会话展开）。可选 **花一次 ¥100 内** 在云上复现 **同场景略大规模**，报告 **永久带进面试**。
 
 ---
 
@@ -167,6 +167,7 @@ Prometheus        必装（外推靠曲线）
 ## 10. 相关文档
 
 - [MILLION_DEMO_PLAN.md](MILLION_DEMO_PLAN.md) — 满血规模与 ¥1～3 万/天方案  
+- [弹幕系统的名词解释.md](弹幕系统的名词解释.md) — **分层 Fan-out 寻址**、五 ID  
 - [K8S_DEMO_ROADMAP.md](K8S_DEMO_ROADMAP.md) — 集群搭建  
 - [PHASE3_PERFORMANCE_EVOLUTION.md](PHASE3_PERFORMANCE_EVOLUTION.md) — 异步 ACK / batch  
 - [LOADTEST_REPORT.md](LOADTEST_REPORT.md) — 填实测  

@@ -111,6 +111,28 @@ Go 服务 → frwder BACKEND → 按 nid 路由 → listend/websocket → Client
 
 核心代码：`src/clang/exec/frwder/frwd_mesg.c`
 
+### 3.3 分层 Fan-out 寻址（聊天室 / 弹幕核心设计）
+
+聊天室下行（`ROOM-CHAT`、`ROOM-BC`）不采用「业务层按 SID 逐连接推送」，而是 **分层 Fan-out 寻址**（*Hierarchical Fan-out Addressing*）：
+
+```text
+(RID, GID) ──① 拓扑路由──► [NID…] ──② 会话展开──► [(SID,CID)…] ──③ 连接投递──► Client
+```
+
+| 段 | 名称 | 执行方 | 输入 → 输出 | 依据 |
+|----|------|--------|-------------|------|
+| **①** | 拓扑路由 | **chatroom** + frwder | **RID → [NID…]** | Redis `room:rid:{rid}:to:nid:zset` |
+| **②** | 会话展开 | **websocket** ChatTab | **(RID,GID) → [(SID,CID)…]** | 内存 `TravRoomSession`（JOIN 时写入） |
+| **③** | 连接投递 | **websocket** lws | **CID → fd** | `LwsCntx.pool[cid]` |
+
+**要点**：
+
+- chatroom 向每个 **NID** 发 **一条** RTMQ（`sendData` 时 `cid=0`），**不是**向整节点所有连接广播。
+- **RID 过滤在接入层 ②** 完成；同一 NID 上多间房的连接互不干扰。
+- 与 **NID 路由**、**接入/业务分离**、**Redis 拓扑注册** 共同构成必嗨 IM 水平扩展的基础。
+
+**详述**：[弹幕系统的名词解释.md](弹幕系统的名词解释.md) §5 · [FLOWS §1.2](FLOWS_AND_GLOSSARY.md#12-一条消息的通用路径)
+
 ---
 
 ## 4. 核心业务流程
@@ -145,16 +167,17 @@ Client → 侦听层 → RTMQ → msgsvr
 | ROOM-BC | 0x040D | 服务端广播（含 expire，适合系统弹幕） |
 | HTTP POST /room/push | — | 运营侧推送 |
 
-**ROOM-CHAT 广播流程**（`src/golang/exec/chatroom/controllers/mesg.go`）：
+**ROOM-CHAT 广播流程**（`broadcast_async.go` / `mesg.go`）— 即 **§3.3 分层 Fan-out 寻址** 的实现：
 
 ```
 1. 异步写入 Mongo 历史（room_mesg_chan）
-2. 查 rid → nid 列表
-3. 遍历各侦听层节点，逐节点 sendData 广播
-4. 回复 ROOM-CHAT-ACK 给发送方
+2. ① 拓扑路由：查 rid → nid 列表（room.node / Redis room:rid:{rid}:to:nid:zset）
+3. 对每个 nid：sendData(ROOM-CHAT, cid=0, targetNid) → frwder BACKEND
+4. 各 websocket：② TravRoomSession(rid,gid) → ③ AsyncSend(cid) 写 WS
+5. 回复 ROOM-CHAT-ACK 给发送方（单播，带发送方 SID/CID/NID）
 ```
 
-**大房间分片**：每组最多 10000 人（`CHAT_ROOM_GROUP_MAX_NUM`），通过 Redis 键管理分组与侦听层分布。详见 `doc/REDIS.md`。
+**大房间分片**：每组最多 10000 人（`CHAT_ROOM_GROUP_MAX_NUM`），通过 Redis 键管理分组与侦听层分布。详见 `doc/REDIS.md`、[弹幕系统的名词解释.md](弹幕系统的名词解释.md)。
 
 ---
 
@@ -192,10 +215,11 @@ Client → 侦听层 → RTMQ → msgsvr
 
 ## 6. 水平扩展设计
 
-- **NID / GID**：每个进程配置唯一节点 ID 和分组 ID
-- **拓扑注册**：侦听层/转发层在 Redis 注册地址映射
+- **分层 Fan-out 寻址**（§3.3）：业务层 **RID→NID** 拓扑路由 + 接入层 **(RID,GID)→(SID,CID)** 会话展开；扩接入 = 扩 **NID**，非 chatroom 逐连接推送
+- **NID / GID**：每个进程配置唯一节点 ID；聊天室 **GID** 为大房分片（每组 ≤1 万人）
+- **拓扑注册**：侦听层/转发层在 Redis 注册地址映射（`im:lsnd:nid:*`、`room:rid:*:to:nid:*`）
 - **智能接入**：`conf/ipdict.txt` 按 IP 地理/运营商选择最优接入点
-- **聊天室分片**：按 GID 分组，每组最多 1 万人，多侦听层分担同一房间
+- **聊天室分片**：按 GID 分组，多侦听层分担同一房间
 
 ---
 

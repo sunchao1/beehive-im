@@ -16,6 +16,8 @@
 | 系统公告 push → 面板 | [PUSH_TO_PANEL_FLOW §3](../assets/PUSH_TO_PANEL_FLOW.md#3-路径-b运营-http-push--在线用户面板) |
 | 弹幕 → 面板（详细） | [PUSH_TO_PANEL_FLOW §2](../assets/PUSH_TO_PANEL_FLOW.md#2-路径-a用户发弹幕--别人面板显示) |
 | **按接口读代码（含 ↑↓ 方向 + 服务）** | **[弹幕核心接口.md](../弹幕核心接口.md)** · [§0 图例](../弹幕核心接口.md#0-图例方向--服务全文统一) |
+| **NID/RID/SID/CID/GID 名词** | **[弹幕系统的名词解释.md](../弹幕系统的名词解释.md)** |
+| **分层 Fan-out 寻址（核心设计）** | [名词解释 §5](../弹幕系统的名词解释.md#5-分层-fan-out-寻址从-rid-到-cid) · [ARCHITECTURE §3.3](../ARCHITECTURE.md#33-分层-fan-out-寻址聊天室--弹幕核心设计) · [FLOWS §1.2.1](../FLOWS_AND_GLOSSARY.md#121-分层-fan-out-寻址速览) |
 | 私聊 / 群聊 | [FLOWS §2.4–2.5](../FLOWS_AND_GLOSSARY.md#24-私聊p2p-chat) |
 | websocket 子系统 | [FLOWS §3.1](../FLOWS_AND_GLOSSARY.md#31-websocketwebsocket-接入层) |
 | frwder / RTMQ | [FLOWS §3.3](../FLOWS_AND_GLOSSARY.md#33-frwder--rtmq消息网关) |

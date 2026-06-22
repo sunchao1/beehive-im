@@ -2,7 +2,7 @@
 
 > **用途**：一文档看清 beehive-im 全貌——整体拓扑、各子系统流程、端到端业务、术语解释。  
 > **读者**：开发、压测、面试准备。  
-> **相关**：[ARCHITECTURE.md](ARCHITECTURE.md) · [assets/ARCHITECTURE_DIAGRAM.md](assets/ARCHITECTURE_DIAGRAM.md) · [assets/ROOM_CHAT_SEQUENCE.md](assets/ROOM_CHAT_SEQUENCE.md) · [REDIS.md](REDIS.md) · [PROTOCOL.md](PROTOCOL.md) · **[弹幕核心接口.md](弹幕核心接口.md)**（含 ↑↓ 方向 + **服务** 总表）
+> **相关**：[ARCHITECTURE.md](ARCHITECTURE.md) · [assets/ARCHITECTURE_DIAGRAM.md](assets/ARCHITECTURE_DIAGRAM.md) · [assets/ROOM_CHAT_SEQUENCE.md](assets/ROOM_CHAT_SEQUENCE.md) · [REDIS.md](REDIS.md) · [PROTOCOL.md](PROTOCOL.md) · **[弹幕核心接口.md](弹幕核心接口.md)** · **[弹幕系统的名词解释.md](弹幕系统的名词解释.md)**（**分层 Fan-out 寻址** §5）
 
 **图例**（与 [弹幕核心接口 §0](弹幕核心接口.md#0-图例方向--服务全文统一) 一致）：
 
@@ -109,6 +109,19 @@ flowchart LR
 - 客户端 **只连接入层**（WS 或 TCP），不直连 chatroom。
 - 业务层通过 **NID（节点 ID）** 找接入点，**不是** K8s Service DNS。
 - **fan-out**：一条上行 → 业务层查「谁在线、在哪个 NID」→ 多条下行。
+- **聊天室 / 弹幕** 下行采用 **分层 Fan-out 寻址**（① RID→NID 拓扑路由 → ② (RID,GID)→(SID,CID) 会话展开 → ③ CID→fd 连接投递）。详见 [弹幕系统的名词解释.md](弹幕系统的名词解释.md) §5。
+
+### 1.2.1 分层 Fan-out 寻址（速览）
+
+```text
+chatroom:  RID → [NID₁, NID₂, …]     每 NID 一条 RTMQ（cid=0）
+websocket: (RID,GID) → TravRoomSession → 每个 (SID,CID) → lws.AsyncSend
+```
+
+| 误区 | 正解 |
+|------|------|
+| 「按 NID 广播 = 整节点所有连接都收」 | 只把包送到 **websocket 进程**；**RID 过滤在 ChatTab** |
+| 「chatroom 持有所有 CID」 | chatroom 只到 **NID**；**CID 仅在接入内存** |
 
 ### 1.3 进程启动顺序（Docker demo）
 
@@ -211,7 +224,7 @@ sequenceDiagram
 | 阶段 | 命令 | 服务 |
 |------|------|------|
 | 进房 | ROOM-JOIN / ACK | chatroom |
-| 用户弹幕 | ROOM-CHAT / ACK | chatroom → fan-out |
+| 用户弹幕 | ROOM-CHAT / ACK | chatroom → **分层 Fan-out 寻址**（§1.2.1） |
 | 运营弹幕 | ROOM-BC / HTTP POST /room/push | chatroom |
 | 退房 | ROOM-QUIT | chatroom |
 
@@ -590,6 +603,7 @@ flowchart TB
 | **RTMQ** | 自研 TCP 消息中间件；队列、worker、按 nid 投递 |
 | **业务层** | usrsvr、chatroom、msgsvr 等 Go 服务 |
 | **fan-out** | 一条上行广播给多个在线用户；下行条数 ≈ 人数 × ingress |
+| **分层 Fan-out 寻址** | 聊天室下行核心：**① 拓扑路由** RID→NID（chatroom）→ **② 会话展开** (RID,GID)→(SID,CID)（websocket ChatTab）→ **③ 连接投递** CID→fd；详 [弹幕系统的名词解释.md](弹幕系统的名词解释.md) §5 |
 | **ingress QPS** | 上行成功 ACK 的 QPS（如 ROOM-CHAT-ACK） |
 | **est_downstream** | 估算总下行 QPS ≈ chat_qps × 同房人数 |
 
@@ -681,9 +695,10 @@ flowchart TB
 
 | 文档 | 内容 |
 |------|------|
+| **[弹幕系统的名词解释.md](弹幕系统的名词解释.md)** | **NID/RID/SID/CID/GID** + **分层 Fan-out 寻址**（§5 详述） |
 | **[弹幕核心接口.md](弹幕核心接口.md)** | 弹幕接口手册（**↑↓ 方向 + 服务链路** + handler 对照） |
 | [assets/PUSH_TO_PANEL_FLOW.md](assets/PUSH_TO_PANEL_FLOW.md) | 上行→面板详细时序（两条 push 路径） |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | 技术架构长文 |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | 技术架构长文；**§3.3 分层 Fan-out 寻址** |
 | [assets/ARCHITECTURE_DIAGRAM.md](assets/ARCHITECTURE_DIAGRAM.md) | 一页架构图 |
 | [assets/ROOM_CHAT_SEQUENCE.md](assets/ROOM_CHAT_SEQUENCE.md) | ROOM-CHAT 逐步时序（同步/异步） |
 | [PROTOCOL.md](PROTOCOL.md) | 协议头与 PB 定义 |

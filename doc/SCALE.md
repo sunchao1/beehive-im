@@ -15,7 +15,7 @@
 | seqsvr | 单点 Thrift | rid/gid 单点分配 |
 | 压测 | task_04 baseline | 见 [LOADTEST.md](LOADTEST.md) |
 
-**适合讲**：分层、RTMQ、rid→nid 路由、群聊 fan-out、错误路径。  
+**适合讲**：分层、RTMQ、**分层 Fan-out 寻址**（rid→nid→cid）、群聊 fan-out、错误路径。  
 **不适合讲**：「本机已验证百万 QPS/百万连接」。
 
 ---
@@ -70,7 +70,7 @@ flowchart LR
 
 | 话题 | Demo | 生产 |
 |------|------|------|
-| 同房 fan-out | chatroom 遍历 rid→nid | 同思路，需 batch、优先级队列 |
+| 同房 fan-out | chatroom **① 拓扑路由** rid→nid；websocket **② 会话展开** | 同思路，需 batch、优先级队列 |
 | 超大房间 | 全量推送 | 采样、合并、客户端节流 |
 | 运营广播 | HTTP `/room/push` → ROOM-BC | 与 0x05xx BC 职责分离（见 DEMO_SCOPE） |
 | 延迟目标 | 本机 &lt;1s 肉眼 | P99 SLA + 监控 |
@@ -79,7 +79,7 @@ flowchart LR
 
 ## 5. 面试话术模板
 
-> 「这套 demo 在单机上跑通 IM 全链路：接入、RTMQ、聊天室、群聊、推送。架构上预留了 NID 多接入和 Redis 拓扑，和当年大规模弹幕系统是同一套路。  
+> 「这套 demo 在单机上跑通 IM 全链路：接入、RTMQ、聊天室、群聊、推送。架构上预留了 NID 多接入和 Redis 拓扑；聊天室下行核心是 **分层 Fan-out 寻址**（RID→NID→CID 三段），和当年大规模弹幕系统是同一套路。  
 > 百万在线需要接入层和 frwder 水平扩、Redis 分片、以及热路径与存储解耦——这些在文档里有演进表，压测数据会在 loadtest baseline 里补充，但 **不会把单机数字说成线上容量**。」
 
 ---
