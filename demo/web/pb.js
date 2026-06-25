@@ -131,5 +131,58 @@
         text: f[6] ? bytesToString(f[6]) : "",
       };
     },
+    decodeSimpleAck(bytes) {
+      const f = decodeFields(bytes);
+      return {
+        code: f[1],
+        errmsg: f[2] ? bytesToString(f[2]) : "",
+      };
+    },
+    encodeGroupCreat({ uid, name, desc }) {
+      // gid 为 proto required；服务端 INCR 分配，客户端传 0 占位
+      return concat([
+        fieldUint64(1, uid),
+        fieldUint64(2, 0),
+        fieldString(3, name),
+        fieldString(4, desc),
+      ]);
+    },
+    encodeGroupJoin({ uid, gid }) {
+      return concat([fieldUint64(1, uid), fieldUint64(2, gid)]);
+    },
+    encodeGroupInvite({ uid, gid, to }) {
+      return concat([
+        fieldUint64(1, uid),
+        fieldUint64(2, gid),
+        fieldUint64(3, to),
+      ]);
+    },
+    encodeGroupQuit({ uid, gid }) {
+      return concat([fieldUint64(1, uid), fieldUint64(2, gid)]);
+    },
+    encodeGroupDismiss({ uid, gid }) {
+      return concat([fieldUint64(1, uid), fieldUint64(2, gid)]);
+    },
+    encodeGroupChat({ uid, gid, level, time, text }) {
+      return concat([
+        fieldUint64(1, uid),
+        fieldUint64(2, gid),
+        fieldUint32(3, level),
+        fieldUint64(4, time),
+        fieldString(5, text),
+      ]);
+    },
+    decodeGroupChat(bytes) {
+      const f = decodeFields(bytes);
+      return {
+        uid: f[1],
+        gid: f[2],
+        text: f[5] ? bytesToString(f[5]) : "",
+      };
+    },
+    decodeGroupNtf(bytes) {
+      const f = decodeFields(bytes);
+      return { uid: f[1], gid: f[2] };
+    },
   };
 })(window);

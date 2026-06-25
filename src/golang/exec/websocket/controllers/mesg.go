@@ -46,6 +46,15 @@ func (ctx *LsndCntx) MesgRegister() {
 	ctx.callback.Register(comm.CMD_ROOM_CHAT, LsndMesgCommHandler, ctx)     /* 聊天室消息 */
 	ctx.callback.Register(comm.CMD_ROOM_BC, LsndMesgCommHandler, ctx)       /* 聊天室广播 */
 	ctx.callback.Register(comm.CMD_ROOM_QUIT, LsndMesgRoomQuitHandler, ctx) /* 退出聊天室 */
+
+	/* 群聊消息（上行转发 usrsvr / msgsvr） */
+	ctx.callback.Register(comm.CMD_GROUP_CREAT, LsndMesgCommHandler, ctx)
+	ctx.callback.Register(comm.CMD_GROUP_DISMISS, LsndMesgCommHandler, ctx)
+	ctx.callback.Register(comm.CMD_GROUP_JOIN, LsndMesgCommHandler, ctx)
+	ctx.callback.Register(comm.CMD_GROUP_QUIT, LsndMesgCommHandler, ctx)
+	ctx.callback.Register(comm.CMD_GROUP_INVITE, LsndMesgCommHandler, ctx)
+	ctx.callback.Register(comm.CMD_GROUP_CHAT, LsndMesgCommHandler, ctx)
+	ctx.callback.Register(comm.CMD_GROUP_KICK, LsndMesgCommHandler, ctx)
 }
 
 ////////////////////////////////////////////////////////////////////////////////

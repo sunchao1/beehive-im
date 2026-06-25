@@ -10,11 +10,6 @@ const CMD = {
 };
 
 const HEAD_SIZE = 52;
-// 通过 serve-demo.sh 代理时与页面同源；直接打开 index.html 时回退到 :8000
-const USRSVR =
-  window.location.protocol === "file:"
-    ? "http://127.0.0.1:8000"
-    : window.location.origin;
 
 const state = {
   uid: 100001,
@@ -78,28 +73,11 @@ function setStatus(text, ok) {
 async function register() {
   state.uid = Number($("uid").value);
   state.rid = Number($("rid").value);
-  const url = `${USRSVR}/im/register?uid=${state.uid}&nation=1&city=1&town=1`;
-  const res = await fetch(url);
-  const data = await res.json();
-  if (data.code !== 0 || !data.sid) throw new Error(data.errmsg || "register failed");
-  state.sid = data.sid;
-  state.seq = 1;
-  log(`register ok uid=${state.uid} sid=${state.sid}`);
+  await DemoCommon.registerUser(state, log);
 }
 
 async function iplist() {
-  const q = new URLSearchParams({
-    type: "2",
-    uid: String(state.uid),
-    sid: String(state.sid),
-    clientip: "127.0.0.1",
-  });
-  const res = await fetch(`${USRSVR}/im/iplist?${q}`);
-  const data = await res.json();
-  if (data.code !== 0 || !data.len) throw new Error(data.errmsg || "iplist empty");
-  state.token = data.token;
-  state.wsURL = `ws://${data.list[0]}/im`;
-  log(`iplist ok ws=${state.wsURL}`);
+  await DemoCommon.fetchIplist(state, log);
 }
 
 function connectWs() {

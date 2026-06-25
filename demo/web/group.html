@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>beehive-im 群聊演示</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <nav class="nav">
+      <a href="index.html">← 弹幕演示</a>
+    </nav>
+    <h1>beehive-im 群聊演示</h1>
+    <p class="hint">
+      开两个浏览器窗口：<strong>窗口 A</strong> uid=<code>100001</code> 点「注册并连接」→「创建群」，记下日志里的 <code>gid</code>；
+      <strong>窗口 B</strong> uid=<code>100002</code> 连接后填入同一 <code>gid</code> →「加入群」，即可互发群消息。
+    </p>
+
+    <section class="panel">
+      <label>UID <input id="uid" type="number" value="100001"></label>
+      <button id="goBtn">注册并连接</button>
+      <span id="status">idle</span>
+    </section>
+
+    <section class="panel">
+      <label>群名 <input id="groupName" type="text" value="demo-group" placeholder="群名称"></label>
+      <label>描述 <input id="groupDesc" type="text" value="beehive demo" placeholder="群描述"></label>
+      <button id="creatBtn" disabled>创建群</button>
+    </section>
+
+    <section class="panel">
+      <label>GID <input id="gid" type="number" value="0" placeholder="建群后自动填入"></label>
+      <button id="joinBtn" disabled>加入群</button>
+      <label>邀请 UID <input id="inviteUid" type="number" value="100002"></label>
+      <button id="inviteBtn" disabled class="btn-secondary">邀请入群</button>
+    </section>
+
+    <section class="panel">
+      <input id="chatBox" type="text" placeholder="输入群消息..." disabled>
+      <button id="sendBtn" disabled>发送</button>
+      <button id="quitBtn" class="btn-secondary">退群</button>
+      <button id="dismissBtn" class="btn-danger">解散群</button>
+    </section>
+
+    <section id="log"></section>
+  </main>
+  <script src="demo-common.js"></script>
+  <script src="pb.js"></script>
+  <script src="group-app.js"></script>
+</body>
+</html>

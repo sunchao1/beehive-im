@@ -1,6 +1,13 @@
 # beehive-im 本地 Docker 演示栈
-# 一键演示: ./scripts/up-demo.sh
-# 仅中间件: docker compose up -d redis mysql mongo
+#
+# 首次（构建镜像 + 编译 Linux 二进制，改 Go/C 代码后重跑）:
+#   docker compose --profile build run --rm --build builder
+#
+# 一键启动（中间件 + 9 进程 + 演示页）:
+#   docker compose --profile run --profile demo up -d
+#
+# 群聊演示页: http://127.0.0.1:8088/group.html
+# 停止:       docker compose --profile run --profile demo down
 
 services:
   redis:
@@ -105,6 +112,26 @@ services:
     entrypoint: ["/workspace/scripts/run-in-linux.sh"]
     stdin_open: true
     tty: true
+
+  # 演示 Web（静态页 + /im/* 代理到 usrsvr，避免浏览器跨域）
+  demo-web:
+    profiles: ["demo"]
+    image: python:3.12-alpine
+    container_name: beehive-demo-web
+    working_dir: /workspace
+    restart: unless-stopped
+    depends_on:
+      runner:
+        condition: service_started
+    ports:
+      - "8088:8088"
+    volumes:
+      - .:/workspace:ro
+    environment:
+      DEMO_WEB_PORT: "8088"
+      DEMO_WEB_BIND: "0.0.0.0"
+      BEEHIVE_USRSVR_URL: "http://runner:8000"
+    command: ["python3", "/workspace/scripts/demo-proxy.py"]
 
 volumes:
   mysql_data:

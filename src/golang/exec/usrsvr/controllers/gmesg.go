@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 
 	"github.com/garyburd/redigo/redis"
 	"github.com/golang/protobuf/proto"
@@ -73,12 +72,11 @@ func (ctx *UsrSvrCntx) groupCreatParse(data []byte) (
 func (ctx *UsrSvrCntx) allocGid() (uint64, error) {
 	rds := ctx.redis.Get()
 	defer rds.Close()
-	gidStr, err := redis.String(rds.Do("INCR", comm.CHAT_KEY_GID_INCR))
+	gid, err := redis.Int64(rds.Do("INCR", comm.CHAT_KEY_GID_INCR))
 	if err != nil {
 		return 0, err
 	}
-	gid, _ := strconv.ParseUint(gidStr, 10, 64)
-	return gid, nil
+	return uint64(gid), nil
 }
 
 func UsrSvrGroupCreatHandler(cmd uint32, nid uint32, data []byte, length uint32, param interface{}) int {
@@ -174,7 +172,7 @@ func UsrSvrGroupJoinHandler(cmd uint32, nid uint32, data []byte, length uint32, 
 		ctx.groupSendSimpleAck(comm.CMD_GROUP_JOIN_ACK, head, errCode, err.Error())
 		return -1
 	}
-	ctx.groupSendSimpleAck(comm.CMD_GROUP_JOIN_ACK, head, 0, "Ok")
+	ctx.groupSendSimpleAck(comm.CMD_GROUP_JOIN_ACK, head, 0, fmt.Sprintf("Ok:%d", req.GetGid()))
 	ntf, _ := proto.Marshal(&mesg.MesgGroupJoinNtf{
 		Uid: proto.Uint64(req.GetUid()),
 		Gid: proto.Uint64(req.GetGid()),
@@ -205,7 +203,7 @@ func UsrSvrGroupQuitHandler(cmd uint32, nid uint32, data []byte, length uint32, 
 		ctx.groupSendSimpleAck(comm.CMD_GROUP_QUIT_ACK, head, comm.ERR_SYS_SYSTEM, err.Error())
 		return -1
 	}
-	ctx.groupSendSimpleAck(comm.CMD_GROUP_QUIT_ACK, head, 0, "Ok")
+	ctx.groupSendSimpleAck(comm.CMD_GROUP_QUIT_ACK, head, 0, fmt.Sprintf("Ok:%d", req.GetGid()))
 	ntf, _ := proto.Marshal(&mesg.MesgGroupQuitNtf{
 		Uid: proto.Uint64(req.GetUid()),
 		Gid: proto.Uint64(req.GetGid()),

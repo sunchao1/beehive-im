@@ -49,3 +49,12 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .msg { padding: 4px 0; border-bottom: 1px solid #22303c; font-size: 0.92rem; }
 .msg.sys { color: #8b98a5; }
 .msg.err { color: #f4212e; }
+.nav { margin-bottom: 12px; }
+.nav a { color: #1d9bf0; text-decoration: none; font-size: 0.9rem; }
+.nav a:hover { text-decoration: underline; }
+button.btn-secondary {
+  background: #38444d;
+}
+button.btn-danger {
+  background: #67070f;
+}

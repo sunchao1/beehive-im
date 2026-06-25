@@ -1,6 +1,9 @@
 package controllers
 
 import (
+	"strconv"
+	"strings"
+
 	"github.com/golang/protobuf/proto"
 
 	"beehive-im/lib/comm"
@@ -55,6 +58,15 @@ func (ctx *LsndCntx) UpMesgRegister() {
 	/* > 推送消息（BC/P2P 透传） */
 	ctx.frwder.Register(comm.CMD_BC, LsndUpMesgPushHandler, ctx)
 	ctx.frwder.Register(comm.CMD_P2P, LsndUpMesgPushHandler, ctx)
+
+	/* > 群聊消息 */
+	ctx.frwder.Register(comm.CMD_GROUP_CREAT_ACK, LsndUpMesgGroupMemberAckHandler, ctx)
+	ctx.frwder.Register(comm.CMD_GROUP_JOIN_ACK, LsndUpMesgGroupMemberAckHandler, ctx)
+	ctx.frwder.Register(comm.CMD_GROUP_QUIT_ACK, LsndUpMesgGroupQuitAckHandler, ctx)
+	ctx.frwder.Register(comm.CMD_GROUP_CHAT, LsndUpMesgGroupChatHandler, ctx)
+	ctx.frwder.Register(comm.CMD_GROUP_CHAT_ACK, LsndUpMesgCommHandler, ctx)
+	ctx.frwder.Register(comm.CMD_GROUP_JOIN_NTF, LsndUpMesgGroupNtfHandler, ctx)
+	ctx.frwder.Register(comm.CMD_GROUP_QUIT_NTF, LsndUpMesgGroupNtfHandler, ctx)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -910,6 +922,120 @@ func LsndUpMesgRoomKickNtfHandler(cmd uint32, nid uint32, data []byte, length ui
 
 	ctx.chat.TravRoomSession(req.GetRid(), 0, LsndRoomSendDataCb, p)
 
+	return 0
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// 群聊相关操作
+
+func parseImGroupIDFromAck(errmsg string) uint64 {
+	if !strings.HasPrefix(errmsg, "Ok:") {
+		return 0
+	}
+	gid, _ := strconv.ParseUint(strings.TrimPrefix(errmsg, "Ok:"), 10, 64)
+	return gid
+}
+
+func lsndUpMesgGroupSimpleAck(data []byte) (head *comm.MesgHeader, code uint32, gid uint64, ok bool) {
+	head = comm.MesgHeadNtoh(data)
+	if !head.IsValid(1) {
+		return nil, 0, 0, false
+	}
+	ack := &mesg.MesgGroupJoinAck{}
+	if err := proto.Unmarshal(data[comm.MESG_HEAD_SIZE:], ack); err != nil {
+		return head, 0, 0, false
+	}
+	return head, ack.GetCode(), parseImGroupIDFromAck(ack.GetErrmsg()), true
+}
+
+// LsndUpMesgGroupMemberAckHandler 建群/加群 ACK：登记本节点 IM 群会话并下发客户端。
+func LsndUpMesgGroupMemberAckHandler(cmd uint32, nid uint32, data []byte, length uint32, param interface{}) int {
+	ctx, ok := param.(*LsndCntx)
+	if !ok {
+		return -1
+	}
+	head, code, gid, parsed := lsndUpMesgGroupSimpleAck(data)
+	if !parsed {
+		return LsndUpMesgCommHandler(cmd, nid, data, length, param)
+	}
+	if code == 0 && gid > 0 {
+		cid := ctx.chat.GetCidBySid(head.GetSid())
+		if cid != 0 {
+			ctx.chat.ImGroupJoin(gid, head.GetSid(), cid)
+		}
+	}
+	return LsndUpMesgCommHandler(cmd, nid, data, length, param)
+}
+
+// LsndUpMesgGroupQuitAckHandler 退群 ACK：清理本节点 IM 群会话。
+func LsndUpMesgGroupQuitAckHandler(cmd uint32, nid uint32, data []byte, length uint32, param interface{}) int {
+	ctx, ok := param.(*LsndCntx)
+	if !ok {
+		return -1
+	}
+	head, code, gid, parsed := lsndUpMesgGroupSimpleAck(data)
+	if parsed && code == 0 && gid > 0 {
+		cid := ctx.chat.GetCidBySid(head.GetSid())
+		if cid != 0 {
+			ctx.chat.ImGroupQuit(gid, head.GetSid(), cid)
+		}
+	}
+	return LsndUpMesgCommHandler(cmd, nid, data, length, param)
+}
+
+// LsndUpMesgGroupChatHandler 群聊消息 fan-out 到本节点所有群成员连接。
+func LsndUpMesgGroupChatHandler(cmd uint32, nid uint32, data []byte, length uint32, param interface{}) int {
+	ctx, ok := param.(*LsndCntx)
+	if !ok {
+		return -1
+	}
+	head := comm.MesgHeadNtoh(data)
+	if !head.IsValid(1) {
+		ctx.log.Error("Header of group-chat is invalid!")
+		return -1
+	}
+	req := &mesg.MesgGroupChat{}
+	if err := proto.Unmarshal(data[comm.MESG_HEAD_SIZE:], req); err != nil {
+		ctx.log.Error("Unmarshal group-chat failed! errmsg:%s", err.Error())
+		return -1
+	}
+	p := &LsndRoomDataParam{ctx: ctx, data: data}
+	ctx.chat.TravImGroupSession(req.GetGid(), LsndRoomSendDataCb, p)
+	return 0
+}
+
+// LsndUpMesgGroupNtfHandler 群通知 fan-out 到本节点群成员。
+func LsndUpMesgGroupNtfHandler(cmd uint32, nid uint32, data []byte, length uint32, param interface{}) int {
+	ctx, ok := param.(*LsndCntx)
+	if !ok {
+		return -1
+	}
+	head := comm.MesgHeadNtoh(data)
+	if !head.IsValid(0) {
+		return -1
+	}
+	var gid uint64
+	switch cmd {
+	case comm.CMD_GROUP_JOIN_NTF:
+		ntf := &mesg.MesgGroupJoinNtf{}
+		if err := proto.Unmarshal(data[comm.MESG_HEAD_SIZE:], ntf); err != nil {
+			return -1
+		}
+		gid = ntf.GetGid()
+	case comm.CMD_GROUP_QUIT_NTF:
+		ntf := &mesg.MesgGroupQuitNtf{}
+		if err := proto.Unmarshal(data[comm.MESG_HEAD_SIZE:], ntf); err != nil {
+			return -1
+		}
+		gid = ntf.GetGid()
+	default:
+		return LsndUpMesgCommHandler(cmd, nid, data, length, param)
+	}
+	if gid == 0 {
+		return 0
+	}
+	p := &LsndRoomDataParam{ctx: ctx, data: data}
+	ctx.chat.TravImGroupSession(gid, LsndRoomSendDataCb, p)
 	return 0
 }
 

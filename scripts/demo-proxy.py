@@ -9,6 +9,7 @@ import urllib.request
 
 USRSVR = os.environ.get("BEEHIVE_USRSVR_URL", "http://127.0.0.1:8000")
 PORT = int(os.environ.get("DEMO_WEB_PORT", "8088"))
+BIND = os.environ.get("DEMO_WEB_BIND", "127.0.0.1")
 WEB_ROOT = os.path.join(os.path.dirname(__file__), "..", "demo", "web")
 
 
@@ -63,7 +64,7 @@ class DemoHandler(http.server.SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     os.chdir(WEB_ROOT)
     try:
-        httpd = ReuseHTTPServer(("127.0.0.1", PORT), DemoHandler)
+        httpd = ReuseHTTPServer((BIND, PORT), DemoHandler)
     except OSError as e:
         if e.errno in (48, 98):  # macOS EADDRINUSE / Linux EADDRINUSE
             print(f"[serve-demo] ERROR: port {PORT} already in use.", file=sys.stderr)
@@ -73,6 +74,7 @@ if __name__ == "__main__":
         raise
     with httpd:
         print(f"Serving demo/web at http://127.0.0.1:{PORT}/")
+        print(f"  group chat: http://127.0.0.1:{PORT}/group.html")
         print(f"API proxy: /im/* -> {USRSVR}")
         try:
             httpd.serve_forever()

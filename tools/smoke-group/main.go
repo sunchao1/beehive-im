@@ -144,6 +144,7 @@ func setupClient(base string, uid uint64) (*wsClient, error) {
 func (c *wsClient) groupCreat(name, desc string) (uint64, error) {
 	if err := c.send(comm.CMD_GROUP_CREAT, &mesg.MesgGroupCreat{
 		Uid:  proto.Uint64(c.uid),
+		Gid:  proto.Uint64(0),
 		Name: proto.String(name),
 		Desc: proto.String(desc),
 	}); err != nil {

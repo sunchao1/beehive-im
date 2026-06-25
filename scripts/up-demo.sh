@@ -53,11 +53,12 @@ wait_healthy beehive-redis 120
 wait_healthy beehive-mysql 120
 wait_healthy beehive-mongo 120
 
-echo "[up-demo] starting app (runner profile)..."
-docker compose --profile run up -d runner
+echo "[up-demo] starting app (runner + demo-web)..."
+docker compose --profile run --profile demo up -d runner demo-web
 
 wait_port 8000 "usrsvr"
 wait_port 8002 "websocket"
+wait_port 8088 "demo-web"
 
 cat <<EOF
 
@@ -66,10 +67,10 @@ beehive-im demo stack is up.
   Register:  curl 'http://127.0.0.1:8000/im/register?uid=100001&nation=1&city=1&town=1'
   Iplist:    curl 'http://127.0.0.1:8000/im/iplist?type=2&uid=100001&sid=<sid>&clientip=127.0.0.1'
   WebSocket: ws://127.0.0.1:8002/im
-  Demo web:  open demo/web/index.html (or ./scripts/serve-demo.sh)
+  Demo web:  http://127.0.0.1:8088/group.html
   Smoke:     ./scripts/smoke-test.sh
   Status:    ./scripts/status.sh
-  Stop:      ./scripts/stop-linux.sh
+  Stop:      docker compose --profile run --profile demo down
 
 Test users: uid=100001 / 100002   room rid=10001
 

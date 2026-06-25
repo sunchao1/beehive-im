@@ -24,6 +24,7 @@ type ChatSessionItem struct {
 	cid          uint64            // 连接CID
 	sync.RWMutex                   // 读写锁
 	room         map[uint64]uint32 // 聊天室信息map[rid]gid
+	imGroup      map[uint64]bool   // IM 群 gid（0x03xx）
 	sub          map[uint32]bool   // 订阅列表(true:订阅 false:未订阅)
 	param        interface{}       // 扩展数据
 }
@@ -315,11 +316,12 @@ func (ctx *ChatTab) SessionSetParam(sid uint64, cid uint64, param interface{}) i
 
 	/* > 添加会话信息 */
 	ssn = &ChatSessionItem{
-		sid:   sid,                     // 会话ID
-		cid:   cid,                     // 连接ID
-		room:  make(map[uint64]uint32), // 聊天室信息
-		sub:   make(map[uint32]bool),   // 订阅列表
-		param: param,                   // 扩展数据
+		sid:     sid,                     // 会话ID
+		cid:     cid,                     // 连接ID
+		room:    make(map[uint64]uint32), // 聊天室信息
+		imGroup: make(map[uint64]bool),   // IM 群
+		sub:     make(map[uint32]bool),   // 订阅列表
+		param:   param,                   // 扩展数据
 	}
 
 	ss.session[*key] = ssn
@@ -596,6 +598,34 @@ func (ctx *ChatTab) TravSession(proc ChatTravSessionProcCb, param interface{}) {
 
 		sl.trav_list(proc, param)
 	}
+}
+
+// ImGroupJoin 加入 IM 群（0x03xx）。
+func (ctx *ChatTab) ImGroupJoin(gid uint64, sid uint64, cid uint64) int {
+	return ctx.session_join_im_group(gid, sid, cid)
+}
+
+// ImGroupQuit 退出 IM 群。
+func (ctx *ChatTab) ImGroupQuit(gid uint64, sid uint64, cid uint64) int {
+	return ctx.session_quit_im_group(gid, sid, cid)
+}
+
+// TravImGroupSession 遍历指定 IM 群在本节点的在线会话。
+func (ctx *ChatTab) TravImGroupSession(gid uint64, proc ChatTravProcCb, param interface{}) int {
+	for idx := 0; idx < SESSION_MAX_LEN; idx += 1 {
+		sl := &ctx.sessions[idx]
+
+		sl.RLock()
+		for k, v := range sl.session {
+			v.RLock()
+			if v.imGroup != nil && v.imGroup[gid] {
+				proc(k.sid, k.cid, param)
+			}
+			v.RUnlock()
+		}
+		sl.RUnlock()
+	}
+	return 0
 }
 
 /******************************************************************************

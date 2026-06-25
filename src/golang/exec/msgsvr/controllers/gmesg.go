@@ -159,15 +159,12 @@ func (ctx *MsgSvrCntx) group_chat_handler(
 	ctx.group_mesg_chan <- item
 
 	/* > 下发群聊消息 */
-	ctx.group.node.RLock()
-	defer ctx.group.node.RUnlock()
-
-	nid_list, ok := ctx.group.node.m[req.GetGid()]
-	if !ok {
-		return nil
+	nid_list, err := chat.GroupGetGidToNidSet(ctx.redis, req.GetGid())
+	if err != nil {
+		ctx.log.Error("Get gid->nid failed! gid:%d %s", req.GetGid(), err.Error())
+		return err
 	}
 
-	/* > 遍历 gid->nid 列表, 并下发群聊消息 */
 	for _, nid := range nid_list {
 		ctx.log.Debug("gid:%d nid:%d", req.GetGid(), nid)
 

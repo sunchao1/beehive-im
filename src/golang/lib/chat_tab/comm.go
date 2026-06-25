@@ -45,10 +45,11 @@ func (ctx *ChatTab) session_join_room(rid uint64, gid uint32, sid uint64, cid ui
 
 	/* > 添加会话信息 */
 	ssn = &ChatSessionItem{
-		sid:  sid,                     // 会话ID
-		cid:  cid,                     // 连接ID
-		room: make(map[uint64]uint32), // 聊天室信息
-		sub:  make(map[uint32]bool),   // 订阅列表
+		sid:     sid,                     // 会话ID
+		cid:     cid,                     // 连接ID
+		room:    make(map[uint64]uint32), // 聊天室信息
+		imGroup: make(map[uint64]bool),   // IM 群
+		sub:     make(map[uint32]bool),   // 订阅列表
 	}
 
 	ssn.room[rid] = gid
@@ -90,6 +91,52 @@ func (ctx *ChatTab) session_quit_room(rid uint64, sid uint64, cid uint64) (gid u
 		return gid, true
 	}
 	return 0, false
+}
+
+// session_join_im_group 记录会话已加入 IM 群。
+func (ctx *ChatTab) session_join_im_group(gid uint64, sid uint64, cid uint64) int {
+	ss := &ctx.sessions[sid%SESSION_MAX_LEN]
+
+	key := &ChatSessionKey{sid: sid, cid: cid}
+
+	ss.Lock()
+	defer ss.Unlock()
+
+	ssn, ok := ss.session[*key]
+	if ok {
+		if ssn.imGroup == nil {
+			ssn.imGroup = make(map[uint64]bool)
+		}
+		ssn.imGroup[gid] = true
+		return 0
+	}
+
+	ssn = &ChatSessionItem{
+		sid:     sid,
+		cid:     cid,
+		room:    make(map[uint64]uint32),
+		imGroup: make(map[uint64]bool),
+		sub:     make(map[uint32]bool),
+	}
+	ssn.imGroup[gid] = true
+	ss.session[*key] = ssn
+	return 0
+}
+
+// session_quit_im_group 移除会话在 IM 群中的记录。
+func (ctx *ChatTab) session_quit_im_group(gid uint64, sid uint64, cid uint64) int {
+	ss := &ctx.sessions[sid%SESSION_MAX_LEN]
+
+	ss.Lock()
+	defer ss.Unlock()
+
+	key := &ChatSessionKey{sid: sid, cid: cid}
+	ssn, ok := ss.session[*key]
+	if !ok || ssn.imGroup == nil {
+		return 0
+	}
+	delete(ssn.imGroup, gid)
+	return 0
 }
 
 /******************************************************************************
