@@ -1,6 +1,8 @@
 # Demo Web 客户端
 
-> 推荐演示流程见 [doc/INTERVIEW_DEMO.md](../doc/INTERVIEW_DEMO.md) §8～13 min。
+> 推荐演示流程见 [doc/INTERVIEW_DEMO.md](../doc/INTERVIEW_DEMO.md) §8～13 min。  
+> **群聊源码精读（Go+C+前端，面试向）**：[doc/群聊Demo源码导读.md](../doc/群聊Demo源码导读.md)  
+> **周末代码清单 + 验证计划**：[doc/群聊Demo代码清单与学习计划.md](../doc/群聊Demo代码清单与学习计划.md)
 
 ## 三步启动（docker compose）
 
