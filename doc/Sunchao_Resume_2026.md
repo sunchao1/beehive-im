@@ -25,7 +25,7 @@
 | 方向 | 能力要点 |
 |------|----------|
 | **长连接 & 网络** | Golang / C 高性能服务；WebSocket、TCP；Reactor、epoll；万级长连接接入与调优 |
-| **消息 & IM** | 私聊 / 群聊 / 推送触达；fan-out 多段路由；Protobuf；Redis 在线拓扑与限流 |
+| **消息 & IM** | 私聊 / 群聊 / 推送触达；fan-out 多段路由；Protobuf；Redis 在线拓扑与限流；**自研 RTMQ 进程总线**（publish / async_send） |
 | **分布式** | Kafka 削峰；Redis Cluster；分片路由、一致性哈希、分布式限流与时序保序 |
 | **框架 & 通信** | Gin / Kratos / go-zero、gRPC、Swoole；RPC、MQ、缓存中间件 |
 | **存储 & 检索** | MySQL 优化、Elasticsearch 海量检索 |
@@ -104,16 +104,18 @@
 ### 长连接 IM 架构研究与群聊链路验证（Beehive-IM · Golang + C + Docker）
 
 **项目简介**  
-基于乐视触达与 IM 同源架构，对 **接入层 / frwder 转发层 / usrsvr·msgsvr 业务层** 进行源码级精读与 Demo 验证：完成 HTTP 注册调度、WebSocket 长连接、**群聊双段 fan-out（gid→nid→cid）**、Redis 在线拓扑等完整链路；Docker Compose 一键部署，配套 Web 双窗口 Demo 与 smoke 验收脚本。
+基于乐视触达与 IM 同源架构，对 **接入层 / frwder / RTMQ 进程总线 / usrsvr·msgsvr 业务层** 进行源码级精读与 Demo 验证：完成 HTTP 注册调度、WebSocket 长连接、**群聊双段 fan-out（gid→nid→cid）**、Redis 在线拓扑等完整链路；Docker Compose 一键部署，配套 Web 双窗口 Demo、smoke 与 **RTMQ 单机压测脚本**。
 
 **技术栈**  
-Golang、C（frwder RTMQ）、WebSocket、Protobuf、Redis、MongoDB、Docker Compose
+Golang、C（frwder / RTMQ Server）、WebSocket、Protobuf、Redis、MongoDB、Docker Compose
 
 **亮点**
 
+- 梳理 **RTMQ 双 API**：`publish(cmd)` 业务进程广播订阅、`async_send(nid)` 指定接入单播；frwder **28888/28889 双平面** 桥接接入与业务。
+- 单机压测（256B 小包）：publish 路径可持续 **~14 万 msg/s** 接收吞吐（内存转发、无持久化）；明确与 **Kafka 日志型 MQ 分工**（在线信令 vs 持久化流平台）。
 - 梳理并验证 **usrsvr（群生命周期）+ msgsvr（群消息 fan-out）** 分工与 Redis 键设计。
 - 实现/修复群聊 Demo 端到端（建群、加群、跨接入节点互发、退群解散）。
-- 输出中文源码导读与学习计划，支撑面试口述与代码 walkthrough。
+- 输出中文源码导读、RTMQ 设计文档与学习计划，支撑面试口述与代码 walkthrough。
 
 ---
 
@@ -132,3 +134,36 @@ Golang、C（frwder RTMQ）、WebSocket、Protobuf、Redis、MongoDB、Docker Co
 | **写法原则** | 强调 **能力完整性** 与 **自研**，不写 DAU；用「精准医患场景 / 万级以下 / 全链路负责」定调。 |
 
 **综合结论**：**加分项**，前提是 **诚实定量级 + 突出 IM 设计**，与乐视触达项目 **组合叙事** 最强。
+
+---
+
+## 附：面试口述稿（RTMQ + 群聊 + 触达 · 自用）
+
+### 30 秒版（开场 / 「介绍一下 RTMQ」）
+
+> 必嗨 IM 里各进程不直连，走自研 **RTMQ 进程总线**：业务进程按 **cmd 订阅**，下行按 **接入节点 NID 单播**。frwder 开 **28888 接入 / 28889 业务** 两个平面，上行 publish、下行 async_send。群聊是 **msgsvr 按 Redis gid→nid 第一段 fan-out**，websocket **ImGroup 第二段 fan-out**。RTMQ 是 **内存、低延迟、不持久化**，和 Kafka **分工不同**——我们压过单机小包 **约 14 万 msg/s** 转发，适合在线信令，不替代日志 MQ。
+
+### 60 秒版（深挖 RTMQ 设计）
+
+> **为什么要有 RTMQ**：websocket、msgsvr、usrsvr 如果 N×M 直连 TCP，扩容和运维都扛不住；RTMQ 让每个进程只连一个 Proxy，中心 Server 做路由。  
+> **两条 API**：`publish(type)` 查订阅表，所有 SUB 了该 cmd 的业务进程都收到——比如上行 GROUP-CHAT 到 msgsvr；`async_send(nid)` 只送到指定接入 NID——比如 msgsvr fan-out 到 websocket:8002。  
+> **和 Kafka 边界**：Kafka 是持久化日志 + 消费位点，适合数仓、审计、削峰；RTMQ 无磁盘、允许队列背压丢包，换 **亚毫秒～毫秒** 进程间转发。面试里我不会说「全面替代 Kafka」，而是 **IM 在线链路专用总线**。  
+> **我的落地**：Beehive 源码精读 + Docker 群聊 Demo + `rtmq-bench` 压测；乐视触达是同源的 **接入 fan-out + 离线 inbox 双通道**，规模在千万用户、百万在线。
+
+### 防追问三答
+
+| 问题 | 答 |
+|------|-----|
+| RTMQ SUB 是用户还是进程？ | **Proxy 进程** TCP 连上后自动 SUB；用户 WebSocket 用 **GROUP-JOIN / ROOM-JOIN**，不是 CMD_SUB。 |
+| 群消息怎么走 RTMQ？ | 上行 publish 到 msgsvr；msgsvr 对每个 nid **async_send**；websocket 再 **ImGroup** 推本机连接。 |
+| RTMQ 挂了怎么办？ | 单点 Hub，无持久化；生产靠监控重启 + 业务幂等；离线靠 inbox / 拉取，不靠 RTMQ 回溯。 |
+
+### 与简历三条如何串
+
+```text
+乐视触达（规模 + fan-out 架构）
+    ↓ 同源
+Beehive RTMQ + 群聊 Demo（设计可讲 + 数字可证）
+    ↓ 互补
+每日健康 IM（从 0 业务建模：群/禁言/踢人）
+```

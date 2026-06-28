@@ -272,8 +272,9 @@
   <h2>个人开源 / 技术实战</h2>
   <p class="project-title">长连接 IM 架构研究与群聊链路验证（Beehive-IM · Golang + C）</p>
   <ul>
-    <li>精读接入层 / frwder / usrsvr·msgsvr 分层，Docker Compose 部署；验证 <b>群聊双段 fan-out（gid→nid→cid）</b> 与 Redis 在线拓扑。</li>
-    <li>Web 双窗口 Demo + smoke 脚本；输出中文源码导读，支撑面试代码 walkthrough。</li>
+    <li>精读 <b>RTMQ 进程总线</b>（publish / async_send、frwder 双平面）与群聊 <b>双段 fan-out（gid→nid→cid）</b>；Docker Compose + Web Demo + RTMQ 压测脚本。</li>
+    <li>单机压测：publish 路径 <b>~14 万 msg/s</b>（256B、内存转发）；与 Kafka 分工：在线信令 vs 持久化流平台。</li>
+    <li>输出中文源码导读与 RTMQ 设计文档，支撑面试 walkthrough。</li>
   </ul>
 </section>
 
