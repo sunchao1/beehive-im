@@ -207,6 +207,11 @@ func (this *UsrSvrIplistCtrl) iplist_token(param *IpListParam) string {
  **作    者: # Qifeng.zou # 2016.11.27 07:42:54 #
  ******************************************************************************/
 func (this *UsrSvrIplistCtrl) iplist_get(ctx *UsrSvrCntx, typ int, clientip string) []string {
+	if static := ctx.conf.StaticIplistForType(typ); len(static) > 0 {
+		ctx.log.Debug("iplist static type=%d entries=%d", typ, len(static))
+		return static
+	}
+
 	ctx.listend.dict.RLock()
 	defer ctx.listend.dict.RUnlock()
 

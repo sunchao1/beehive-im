@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tasker
+  namespace: beehive
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tasker
+  template:
+    metadata:
+      labels:
+        app: tasker
+    spec:
+      containers:
+        - name: tasker
+          image: beehive-im-runtime:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - /opt/beehive/run-service.sh
+            - tasker
+            - /opt/beehive/conf/runtime/tasker.xml
+          volumeMounts:
+            - name: conf
+              mountPath: /opt/beehive/conf/runtime
+      volumes:
+        - name: conf
+          configMap:
+            name: beehive-conf

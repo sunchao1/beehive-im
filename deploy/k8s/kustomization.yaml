@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: beehive
+resources:
+  - namespace.yaml
+  - middleware/redis.yaml
+  - middleware/mysql.yaml
+  - middleware/mongo.yaml
+  - apps/frwder.yaml
+  - apps/seqsvr.yaml
+  - apps/msgsvr.yaml
+  - apps/tasker.yaml
+  - apps/usrsvr.yaml
+  - apps/monitor.yaml
+  - apps/chatroom.yaml
+  - apps/websocket.yaml
+  - apps/websocket-2.yaml
+  - ingress.yaml
+  - hpa-websocket.yaml

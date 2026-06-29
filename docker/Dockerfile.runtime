@@ -1,0 +1,20 @@
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates libssl3 libcurl4 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt/beehive
+
+COPY 3rd/install/lib/ /usr/local/lib/
+COPY bin/frwder.v.1.1 bin/seqsvr.v.1.1 bin/msgsvr.v.1.1 bin/tasker.v.1.1 \
+     bin/usrsvr.v.1.1 bin/monitor.v.1.1 bin/chatroom.v.1.1 \
+     bin/websocket.v.1.1 bin/listend.v.1.1 \
+     /opt/beehive/bin/
+COPY conf/ipdict.txt /opt/beehive/conf/ipdict.txt
+COPY deploy/k8s/scripts/run-service.sh /opt/beehive/run-service.sh
+
+RUN chmod +x /opt/beehive/run-service.sh && mkdir -p /opt/beehive/log /opt/beehive/conf/runtime
+
+ENV LD_LIBRARY_PATH=/usr/local/lib
+ENV PATH=/opt/beehive/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin

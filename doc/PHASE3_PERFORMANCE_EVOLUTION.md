@@ -113,6 +113,8 @@ ROOM-CHAT → chatroom → Kafka topic(im.room, key=rid)
 
 **结论**：先 **A**，有精力再加 **B** 或 **C**；不要三个同时开工。
 
+> **方向二完整落地路径** → [方向二-RTMQ保留与Kafka削峰落地手册.md](方向二-RTMQ保留与Kafka削峰落地手册.md)（RTMQ 保留 Hub + Kafka 削峰 + K8s 路由分三期）
+
 ---
 
 ## 5. 方案 A 实施 checklist

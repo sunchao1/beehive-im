@@ -1,0 +1,35 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: beehive
+  namespace: beehive
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: beehive.local
+      http:
+        paths:
+          - path: /im/register
+            pathType: Prefix
+            backend:
+              service:
+                name: usrsvr
+                port:
+                  number: 8000
+          - path: /im/iplist
+            pathType: Prefix
+            backend:
+              service:
+                name: usrsvr
+                port:
+                  number: 8000
+          - path: /im
+            pathType: Prefix
+            backend:
+              service:
+                name: websocket
+                port:
+                  number: 8002

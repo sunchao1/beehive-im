@@ -2,10 +2,17 @@
 *.so
 *.a
 *.log
+*.bak
 cscope.*
 tags
-bin/*
+.run-conf/
+deploy/k8s/.rendered/
 gopath/
 reports/loadtest/*.json
 reports/loadtest/*.csv
 .tmp_pypdf/
+
+# 编译产物与运行日志（仅保留 start/stop 脚本）
+bin/*
+!bin/start.sh
+!bin/stop.sh

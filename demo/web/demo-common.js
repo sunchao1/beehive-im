@@ -26,7 +26,7 @@
       const data = await res.json();
       if (data.code === 0 && data.len) {
         state.token = data.token;
-        state.wsURL = `ws://${data.list[0]}/im`;
+        state.wsURL = wsURLFromIplistEntry(data.list[0]);
         log(`iplist ok ws=${state.wsURL}`);
         return;
       }
@@ -61,9 +61,19 @@
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
+  /** host:port 或完整 ws(s):// URL（K8s Ingress 方案 A） */
+  function wsURLFromIplistEntry(entry) {
+    const s = String(entry || "").trim();
+    if (/^wss?:\/\//i.test(s)) {
+      return s;
+    }
+    return `ws://${s}/im`;
+  }
+
   global.DemoCommon = {
     usrsvrOrigin,
     registerUser,
     fetchIplist,
+    wsURLFromIplistEntry,
   };
 })(window);

@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seqsvr
+  namespace: beehive
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: seqsvr
+  template:
+    metadata:
+      labels:
+        app: seqsvr
+    spec:
+      containers:
+        - name: seqsvr
+          image: beehive-im-runtime:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - /opt/beehive/run-service.sh
+            - seqsvr
+            - /opt/beehive/conf/runtime/seqsvr.xml
+          ports:
+            - containerPort: 50000
+          volumeMounts:
+            - name: conf
+              mountPath: /opt/beehive/conf/runtime
+      volumes:
+        - name: conf
+          configMap:
+            name: beehive-conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seqsvr
+  namespace: beehive
+spec:
+  selector:
+    app: seqsvr
+  ports:
+    - port: 50000
+      targetPort: 50000

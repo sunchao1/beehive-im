@@ -3,6 +3,8 @@ package conf
 import (
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"beehive-im/lib/log"
 	"beehive-im/lib/lws"
@@ -46,7 +48,20 @@ func Load(path string) (conf *LsndConf, err error) {
 	if nil != err {
 		return nil, err
 	}
+	conf.applyEnvOverrides()
 	return conf, err
+}
+
+// applyEnvOverrides K8s StatefulSet 按 Pod ordinal 覆盖 NID。
+func (conf *LsndConf) applyEnvOverrides() {
+	if v := strings.TrimSpace(os.Getenv("BEEHIVE_WS_NID")); v != "" {
+		if nid, err := strconv.ParseUint(v, 10, 32); err == nil && nid > 0 {
+			conf.Id = uint32(nid)
+			conf.Gid = uint32(nid)
+			conf.Frwder.Id = conf.Id
+			conf.Frwder.Gid = conf.Gid
+		}
+	}
 }
 
 /* 获取结点ID */

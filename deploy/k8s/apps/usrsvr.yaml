@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: usrsvr
+  namespace: beehive
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: usrsvr
+  template:
+    metadata:
+      labels:
+        app: usrsvr
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: usrsvr
+          image: beehive-im-runtime:latest
+          imagePullPolicy: IfNotPresent
+          workingDir: /opt/beehive/bin
+          command:
+            - /opt/beehive/run-service.sh
+            - usrsvr
+            - /opt/beehive/conf/runtime/usrsvr.xml
+          env:
+            # iplist 方案 A：固定 WS 入口（按 Ingress 域名修改）
+            - name: BEEHIVE_WS_IPLIST
+              value: "wss://beehive.local/im"
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - name: conf
+              mountPath: /opt/beehive/conf/runtime
+            - name: log
+              mountPath: /opt/beehive/log
+      volumes:
+        - name: conf
+          configMap:
+            name: beehive-conf
+        - name: log
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: usrsvr
+  namespace: beehive
+spec:
+  selector:
+    app: usrsvr
+  ports:
+    - port: 8000
+      targetPort: 8000

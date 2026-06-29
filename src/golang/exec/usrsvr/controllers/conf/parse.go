@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"beehive-im/lib/log"
 )
@@ -58,6 +59,12 @@ type UsrSvrRtmqProxyConf struct {
 	RecvChanLen uint32             `xml:"RECV-CHAN-LEN"` // 接收队列长度
 }
 
+/* 静态 iplist 配置（可选，K8s Ingress 方案 A） */
+type UsrSvrIplistStaticXml struct {
+	Type int    `xml:"TYPE,attr"` // 1:TCP 2:WS
+	Addr string `xml:"ADDR,attr"` // host:port 或 wss://host/im
+}
+
 /* 在线中心XML配置 */
 type UsrSvrConfXmlData struct {
 	Id     uint32              `xml:"ID,attr"`   // 结点ID
@@ -70,6 +77,7 @@ type UsrSvrConfXmlData struct {
 	Cipher string              `xml:"CIPHER"`    // 私密密钥
 	Log    UsrSvrLogConf       `xml:"LOG"`       // 日志配置
 	Frwder UsrSvrRtmqProxyConf `xml:"FRWDER"`    // RTMQ PROXY配置
+	Iplist []UsrSvrIplistStaticXml `xml:"IPLIST>STATIC"` // 可选静态接入列表
 }
 
 /******************************************************************************
@@ -234,6 +242,19 @@ func (conf *UsrSvrConf) parse() (err error) {
 	conf.Frwder.WorkerNum = node.Frwder.WorkerNum
 	if 0 == conf.Frwder.WorkerNum {
 		return errors.New("Get worker number failed!")
+	}
+
+	for _, item := range node.Iplist {
+		addr := strings.TrimSpace(item.Addr)
+		if addr == "" {
+			continue
+		}
+		switch item.Type {
+		case 1:
+			conf.IplistStatic.Tcp = append(conf.IplistStatic.Tcp, addr)
+		case 2:
+			conf.IplistStatic.Ws = append(conf.IplistStatic.Ws, addr)
+		}
 	}
 
 	return nil

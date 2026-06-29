@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: websocket
+  namespace: beehive
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: websocket
+      beehive.im/role: ws
+  template:
+    metadata:
+      labels:
+        app: websocket
+        beehive.im/role: ws
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8002"
+    spec:
+      containers:
+        - name: websocket
+          image: beehive-im-runtime:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - /opt/beehive/run-service.sh
+            - websocket
+            - /opt/beehive/conf/runtime/websocket.xml
+          ports:
+            - containerPort: 8002
+          volumeMounts:
+            - name: conf
+              mountPath: /opt/beehive/conf/runtime
+      volumes:
+        - name: conf
+          configMap:
+            name: beehive-conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: websocket
+  namespace: beehive
+spec:
+  selector:
+    app: websocket
+    beehive.im/role: ws
+  ports:
+    - port: 8002
+      targetPort: 8002

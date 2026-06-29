@@ -1,0 +1,45 @@
+# 第二接入节点 NID=20002（与 compose websocket-2 对齐）
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: websocket-2
+  namespace: beehive
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: websocket-2
+  template:
+    metadata:
+      labels:
+        app: websocket-2
+    spec:
+      containers:
+        - name: websocket
+          image: beehive-im-runtime:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - /opt/beehive/run-service.sh
+            - websocket
+            - /opt/beehive/conf/runtime/websocket-2.xml
+          ports:
+            - containerPort: 8003
+          volumeMounts:
+            - name: conf
+              mountPath: /opt/beehive/conf/runtime
+      volumes:
+        - name: conf
+          configMap:
+            name: beehive-conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: websocket-2
+  namespace: beehive
+spec:
+  selector:
+    app: websocket-2
+  ports:
+    - port: 8003
+      targetPort: 8003

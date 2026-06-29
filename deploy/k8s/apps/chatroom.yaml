@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chatroom
+  namespace: beehive
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chatroom
+  template:
+    metadata:
+      labels:
+        app: chatroom
+    spec:
+      containers:
+        - name: chatroom
+          image: beehive-im-runtime:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - /opt/beehive/run-service.sh
+            - chatroom
+            - /opt/beehive/conf/runtime/chatroom.xml
+          ports:
+            - containerPort: 8004
+          volumeMounts:
+            - name: conf
+              mountPath: /opt/beehive/conf/runtime
+      volumes:
+        - name: conf
+          configMap:
+            name: beehive-conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chatroom
+  namespace: beehive
+spec:
+  selector:
+    app: chatroom
+  ports:
+    - port: 8004
+      targetPort: 8004

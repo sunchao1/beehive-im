@@ -86,6 +86,9 @@ flowchart LR
 
 ## 6. 相关文档
 
+- [方向二-RTMQ水平扩展专章.md](方向二-RTMQ水平扩展专章.md) — Hub 分片、msgsvr SUB、Kafka 分工（企业能否用）
+- [40k向-必嗨方向二叙事与压测对比模板.md](40k向-必嗨方向二叙事与压测对比模板.md) — 简历叙事、v0/v3 对比表、面试追问
+- [六周作战计划-孙超.md](六周作战计划-孙超.md) — W1～W6 勾选清单与投递节奏
 - [ARCHITECTURE.md](ARCHITECTURE.md) §11 缺口清单
 - [DEMO_SCOPE.md](DEMO_SCOPE.md) 实现边界
 - [INTERVIEW_DEMO.md](INTERVIEW_DEMO.md) Q&A

@@ -84,7 +84,7 @@ func (c *Client) FillIplist(base string) error {
 		return fmt.Errorf("iplist empty")
 	}
 	c.Token = out.Token
-	c.WSURL = "ws://" + out.List[0] + "/im"
+	c.WSURL = comm.WsURLFromIplistEntry(out.List[0])
 	return nil
 }
 

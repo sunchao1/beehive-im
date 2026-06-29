@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frwder
+  namespace: beehive
+  labels:
+    app: frwder
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frwder
+  template:
+    metadata:
+      labels:
+        app: frwder
+    spec:
+      containers:
+        - name: frwder
+          image: beehive-im-runtime:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - /opt/beehive/run-service.sh
+            - frwder
+            - /opt/beehive/conf/runtime/frwder.xml
+          ports:
+            - name: forward
+              containerPort: 28888
+            - name: backend
+              containerPort: 28889
+          volumeMounts:
+            - name: conf
+              mountPath: /opt/beehive/conf/runtime
+            - name: log
+              mountPath: /opt/beehive/log
+      volumes:
+        - name: conf
+          configMap:
+            name: beehive-conf
+        - name: log
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frwder
+  namespace: beehive
+spec:
+  selector:
+    app: frwder
+  ports:
+    - name: forward
+      port: 28888
+      targetPort: 28888
+    - name: backend
+      port: 28889
+      targetPort: 28889

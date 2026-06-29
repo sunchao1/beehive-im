@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: msgsvr
+  namespace: beehive
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: msgsvr
+  template:
+    metadata:
+      labels:
+        app: msgsvr
+    spec:
+      containers:
+        - name: msgsvr
+          image: beehive-im-runtime:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - /opt/beehive/run-service.sh
+            - msgsvr
+            - /opt/beehive/conf/runtime/msgsvr.xml
+          volumeMounts:
+            - name: conf
+              mountPath: /opt/beehive/conf/runtime
+      volumes:
+        - name: conf
+          configMap:
+            name: beehive-conf
