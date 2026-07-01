@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>孙超 - Golang/IM 简历 v2.1-final</title>
+  <style>
+    /* 风格对齐 doc/personal/孙超-Golang.pdf：简洁黑白、编号列表、内容/业绩结构 */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", "SimSun", sans-serif;
+      font-size: 12px;
+      line-height: 1.55;
+      color: #000;
+      background: #fff;
+      max-width: 210mm;
+      margin: 0 auto;
+      padding: 14mm 16mm 18mm;
+    }
+    @media print {
+      body { padding: 12mm 14mm; font-size: 11px; }
+      .page-footer { position: fixed; bottom: 8mm; left: 0; right: 0; text-align: center; }
+      .section { break-inside: avoid-page; }
+    }
+    .name {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 6px;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .meta {
+      text-align: center;
+      font-size: 11.5px;
+      color: #222;
+      line-height: 1.7;
+      margin-bottom: 14px;
+    }
+    h2 {
+      font-size: 13px;
+      font-weight: 700;
+      margin: 14px 0 8px;
+      padding-bottom: 2px;
+      border-bottom: 1px solid #333;
+    }
+    .num-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .num-list li {
+      margin-bottom: 4px;
+      padding-left: 0;
+      text-align: justify;
+    }
+    .job-block, .project-block { margin-bottom: 12px; }
+    .job-head, .project-head {
+      font-weight: 700;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+    .job-head .time, .project-head .time { font-weight: 400; float: right; }
+    .project-sub {
+      font-size: 11px;
+      color: #333;
+      margin-bottom: 4px;
+    }
+    .label {
+      font-weight: 700;
+      margin: 4px 0 2px;
+    }
+    .para {
+      text-align: justify;
+      margin-bottom: 4px;
+      color: #111;
+    }
+    .page-footer {
+      margin-top: 20px;
+      padding-top: 8px;
+      border-top: 1px solid #ccc;
+      font-size: 10px;
+      color: #666;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<p class="name">孙超</p>
+<div class="meta">
+  男&nbsp;|&nbsp;年龄：39岁&nbsp;|&nbsp;18514509695&nbsp;|&nbsp;623569510@qq.com<br />
+  16年工作经验&nbsp;|&nbsp;求职意向：Golang / IM消息后端 / 分布式架构&nbsp;|&nbsp;期望城市：北京
+</div>
+
+<section class="section">
+  <h2>个人优势</h2>
+  <ol class="num-list">
+    <li>1、<b>消息触达架构</b>：乐视核心负责全站用户消息触达；<b>在线长连接 push</b> 与 <b>离线 inbox</b> 双通道并行；接入层 fan-out + 业务分片 + 异步广播，支撑千万级用户、百万级同时在线。</li>
+    <li>2、<b>流式异步计算</b>：乐视用户等级链路，行为日志经 <b>Kafka</b> 由 <b>Go 消费服务</b> 异步算分；按 <b>user_id 分区</b> 保证同用户串行，Redis 热写 + 异步落 MySQL，<b>日亿级</b> 行为数据处理。</li>
+    <li>3、<b>IM 全链路能力</b>：每日健康从 0 自研医患 IM（Golang）；独立完成消息协议、会话模型与后端落地；覆盖私聊、群聊、踢人、禁言、成员管理等完整 IM 能力。</li>
+    <li>4、<b>一线互联网落地</b>：新浪、乐视、优信等头部企业架构与研发经验；擅长高并发消息、长连接与异步数据处理系统从 0 到 1 搭建与线上治理。</li>
+    <li>5、<b>压测与稳定性</b>：完整压测与容灾经验；擅长长连接风暴、流量突峰、消费积压、热点击穿等典型线上问题处理。</li>
+  </ol>
+</section>
+
+<section class="section">
+  <h2>专业技能</h2>
+  <ol class="num-list">
+    <li>1、熟悉 Golang，Gin、Kratos、go-zero；熟悉 gRPC、Protobuf、WebSocket、TCP/IP。</li>
+    <li>2、熟悉 <b>IM 与消息触达</b>：私聊/群聊、fan-out 多段路由、Redis 在线拓扑与限流；长连接接入与调优。</li>
+    <li>3、熟悉 Kafka 等消息组件；Consumer 组扩展、按业务 key 保证有序消费；批量拉取与 offset 管理。</li>
+    <li>4、熟悉 MySQL 及性能优化；Redis、Memcache 等缓存系统。</li>
+    <li>5、熟悉数据结构和算法；了解 Goroutine、Channel、锁等并发模型。</li>
+    <li>6、熟悉 Linux，熟练编写 Shell；熟悉 Git 代码管理。</li>
+    <li>7、熟悉 Docker、Docker Compose、K8s；熟悉 Nginx、OpenResty 高性能接口开发。</li>
+    <li>8、熟悉 Elasticsearch 检索优化；熟悉 PHP、Java、C++。</li>
+  </ol>
+</section>
+
+<section class="section">
+  <h2>核心项目</h2>
+
+  <div class="project-block">
+    <div class="project-head">项目一：乐视用户消息触达平台<span class="time">乐视 · 2015.07 – 2017.03</span></div>
+    <p class="project-sub">Golang + C · 长连接 push + 离线 inbox · 核心负责人</p>
+    <p class="label">内容：</p>
+    <ol class="num-list">
+      <li>1. 主导全站用户消息触达架构设计与研发：区分 <b>在线长连接 push</b> 与 <b>离线分表 inbox</b>，结合用户画像与在线状态做投放策略。</li>
+      <li>2. 主导触达链路 2.0 演进：在线段由「分表异步写库 + 拉取」升级为 <b>接入层 fan-out + 业务分片 + 异步广播</b>，与离线通道并行，实现秒级～分钟级全量触达收尾。</li>
+      <li>3. 搭建全站统一消息中台，覆盖系统、活动、评论等消息类型，支撑多业务线快速接入；接入层按连接数线性扩容。</li>
+    </ol>
+    <p class="label">业绩：</p>
+    <ol class="num-list">
+      <li>1. 平台 <b>日均千万级 PV</b>，架构解耦、扩展性强，线上长期稳定，零重大事故。</li>
+      <li>2. 同等灰度规模下，<b>在线段全量触达收尾由约 10 分钟级缩短至约 1 分钟内</b>；支撑 <b>百万级同时在线</b> 水平扩展。</li>
+    </ol>
+  </div>
+
+  <div class="project-block">
+    <div class="project-head">项目二：乐视用户等级异步计算<span class="time">乐视 · 2015.07 – 2017.03</span></div>
+    <p class="project-sub">Golang + Kafka · 行为日志算分 · 核心负责人</p>
+    <p class="label">内容：</p>
+    <ol class="num-list">
+      <li>1. 负责用户积分 / 成长等级计算链路：播放等行为埋点写入 <b>Kafka</b>，由 <b>Go 消费服务</b> 异步处理，支撑全站日亿级行为数据。</li>
+      <li>2. 按 <b>user_id 分区路由</b>（hash 取模进 partition），保证同一用户行为 <b>串行计算</b>，避免多实例并发导致积分/等级脏写。</li>
+      <li>3. 消费侧批量拉取、批量提交 offset；积分/等级先写 <b>Redis</b>，再异步同步 <b>MySQL</b>；配合日志与消费位点监控保障稳定运行。</li>
+    </ol>
+    <p class="label">业绩：</p>
+    <ol class="num-list">
+      <li>1. 等级计算链路线上长期稳定运行，<b>日处理上亿条</b> 用户行为数据。</li>
+      <li>2. 支撑上层用户成长体系与运营策略；与画像项目数据口径对齐，相关子项提前交付。</li>
+    </ol>
+  </div>
+
+  <div class="project-block">
+    <div class="project-head">项目三：每日健康医患 IM 消息系统<span class="time">每日健康 · 2019.06 – 2026.02</span></div>
+    <p class="project-sub">Golang · 私聊 / 群聊 · 从 0 自研 · 独立负责</p>
+    <p class="label">内容：</p>
+    <ol class="num-list">
+      <li>1. 面向患者 App 与内部工作人员 App 内沟通，从 0 设计并实现 IM 消息系统：消息协议（Protobuf）、会话模型、路由与存储分层。</li>
+      <li>2. 覆盖 <b>私聊、群聊、踢人、禁言、成员管理</b> 等完整 IM 能力；群聊支持建群、加退群、管理员权限与消息投递。</li>
+      <li>3. 基于 gRPC 与现有业务服务集成；Redis 缓存在线与会话态，MySQL 持久化消息与会话；保障医患场景下消息可靠性与可运维性。</li>
+    </ol>
+    <p class="label">业绩：</p>
+    <ol class="num-list">
+      <li>1. IM 系统按时上线并长期稳定运行，支撑医患日常沟通与 SCRM 协同场景。</li>
+      <li>2. 独立完成协议与后端全链路，架构可扩展，后续新 IM 能力（如群管理策略）可按模块迭代。</li>
+    </ol>
+  </div>
+</section>
+
+<section class="section">
+  <h2>工作经历</h2>
+
+  <div class="job-block">
+    <div class="job-head">每日健康&nbsp;&nbsp;Golang 后端<span class="time">2019.06 – 2026.02</span></div>
+    <p class="label">内容：</p>
+    <p class="para">公司从事糖尿病慢病管理，通过动态血糖仪、运动监测等设备，结合客户端、医生端、SCRM 医患管理系统、小程序等为用户提供监测、打卡分析、用药方案等服务。本人在技术部负责各端后端支撑。</p>
+    <p class="label">业绩：</p>
+    <ol class="num-list">
+      <li>1. 参与公司技术选型与架构设计，完成业务体系从 0 到 1 搭建；基于 gRPC 完成基础服务能力开发。</li>
+      <li>2. 负责客户端、医生端接口开发，动态血糖仪接入，SCRM 系统搭建与核心接口维护。</li>
+      <li>3. 推动业务上 K8s，通过 Git + Jenkins 做 CI/CD，支撑敏捷迭代。（IM 详见核心项目三）</li>
+    </ol>
+  </div>
+
+  <div class="job-block">
+    <div class="job-head">优舫北京信息科技有限公司（优信二手车金融中心）&nbsp;&nbsp;PHP<span class="time">2017.06 – 2019.05</span></div>
+    <p class="label">内容：</p>
+    <p class="para">任职于优信二手车金融研发中心，负责贷中、贷后及银行资方对接的贷款申请、确认、金融产品与贷后支付表维护。</p>
+    <p class="label">业绩：</p>
+    <ol class="num-list">
+      <li>1. 负责贷中贷后接口开发维护及银行联调，所负责业务线上无重大故障。</li>
+      <li>2. 主导 ERP 状态机流程改造为 <b>Kafka Topic 事件流</b>，完成系统解耦。</li>
+      <li>3. 使用 Swoole 优化慢接口；ERP 检索切换为 <b>ES 检索</b>，查询由秒级优化至毫秒级。</li>
+    </ol>
+  </div>
+
+  <div class="job-block">
+    <div class="job-head">乐视控股（北京）有限公司&nbsp;&nbsp;后端架构工程师<span class="time">2015.07 – 2017.03</span></div>
+    <p class="label">内容：</p>
+    <p class="para">任职后端架构工程师，负责用户消息触达、用户等级异步计算等核心链路的设计、研发与线上稳定性保障。</p>
+    <p class="label">业绩：</p>
+    <ol class="num-list">
+      <li>1. 两大核心项目按时交付，线上长期稳定运行。（详见核心项目一、二）</li>
+      <li>2. 参与用户画像项目业务侧数据对接，与美国大数据部门协作，相关子项提前交付。</li>
+    </ol>
+  </div>
+
+  <div class="job-block">
+    <div class="job-head">新浪网技术（中国）有限公司&nbsp;&nbsp;PHP<span class="time">2013.08 – 2015.07</span></div>
+    <p class="label">内容：</p>
+    <ol class="num-list">
+      <li>1. 负责新浪博客消息、通知、SASS、提醒、纸条等基础服务接口开发维护及项目迁移。</li>
+      <li>2. 负责博客广告分成、「亮瞎眼」APP 等服务端开发与维护。</li>
+    </ol>
+    <p class="label">业绩：</p>
+    <ol class="num-list">
+      <li>1. 所负责基础服务接口线上运行稳定；SASS 迁移按时完成。</li>
+      <li>2. 「亮瞎眼」项目按时保质完成 APP 接口开发。</li>
+    </ol>
+  </div>
+
+  <div class="job-block">
+    <div class="job-head">春藤网络&nbsp;&nbsp;Java<span class="time">2010.07 – 2013.07</span></div>
+    <p class="label">内容：</p>
+    <p class="para">面向移动运营商 SP 业务，负责积分活动、奖品发放、移动机器人等研发。</p>
+    <p class="label">业绩：</p>
+    <ol class="num-list">
+      <li>1. 按时保质完成活动开发，线上运行稳定；持续重构优化，提升开发效率。</li>
+    </ol>
+  </div>
+</section>
+
+<section class="section">
+  <h2>教育经历</h2>
+  <p class="para">商丘职业技术学院&nbsp;&nbsp;大专&nbsp;&nbsp;计算机信息管理&nbsp;&nbsp;&nbsp;&nbsp;2006 – 2009</p>
+</section>
+
+<p class="page-footer">简历版本 v2.1-final · 2026-06-25 · 风格参照 孙超-Golang.pdf · 上一版见 Sunchao_Resume_2026_v1.html</p>
+
+</body>
+</html>

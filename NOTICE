@@ -1,0 +1,13 @@
+hi-im
+Copyright 2026 Sun Chao
+
+This product includes software developed as part of the hi-im project.
+
+Third-party and legacy components in this repository may be subject to
+separate licenses. See the respective source file headers and vendor
+directories for details.
+
+Legacy Beehive IM / RTMQ C sources (where present) may retain their
+original copyright notices (e.g. Qiware technology Co., Ltd). hi-im-core
+is a clean-room rewrite and is licensed under Apache License 2.0 as
+stated in the LICENSE file.
