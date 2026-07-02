@@ -11,4 +11,6 @@
         <SEND-CHAN-LEN>20000</SEND-CHAN-LEN>        <!-- 发送队列长度 -->
         <RECV-CHAN-LEN>20000</RECV-CHAN-LEN>        <!-- 接收队列长度 -->
     </FRWDER>
+    <!-- 可选：静态 iplist（K8s 下用环境变量 BEEHIVE_WS_IPLIST 覆盖更方便） -->
+    <!-- <IPLIST><STATIC TYPE="2" ADDR="127.0.0.1:8002" /></IPLIST> -->
 </USRSVR>

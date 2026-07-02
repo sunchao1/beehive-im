@@ -392,12 +392,17 @@ HIIM_AUTH_PASS=***
 
 ```text
 Stage 0  文档 + hi-im-bench 对齐 14 万/s
-Stage 1  hi-im-hub 单 Shard 替换 compose 里 frwder
-Stage 2  hi-im-proxy 替换 lib/rtmq，gateway 群聊冒烟
-Stage 3  各 Go 服务迁 Gin + gRPC seqsvr
-Stage 4  Hub 分片 + K8s Ingress
-Stage 5  Kafka + roomfanout
+Stage 1  hi-im-hub 单 Shard 替换 compose 里 frwder（Hub 层）
+Stage 2  hi-im-proxy 连 Hub：publish / unicast 集成测试（测试桩，非群聊）
+Stage 3  hi-im-seqsvr + usrsvr：注册 / ONLINE
+Stage 4  hi-im-gateway：WS 接入 + 连 usrsvr
+Stage 5  hi-im-msgsvr：群聊 gid→nid 第一段 fan-out → 双窗口群聊冒烟
+Stage 6  hi-im-chatroom + hi-im-tasker
+Stage 7  Hub 分片 + hi-im-deploy K8s
+Stage 8  hi-im-roomfanout + Kafka
 ```
+
+> **注意**：「双窗口群聊互通」至少依赖 **core + proxy + api + deploy + gateway + usrsvr + msgsvr + seqsvr + Redis**，不可能在仅有 gateway 的 Stage 4 之前完成。
 
 ### 8.3 兼容期双跑（可选）
 
@@ -444,19 +449,85 @@ hi-im-roomfanout Deployment (replicas ≈ Kafka partitions)
 
 ## 11. 实施路线图与工期
 
-假设 **你全职**，已有必嗨 RTMQ 文档基础：
+假设 **你全职**，已有必嗨 RTMQ 文档基础。
 
-| 阶段 | 内容 | 工期 | 验收 |
-|------|------|------|------|
-| **M1** | `hi-im-core`：bus wire v1 + Hub 单 Shard + bench | 3 周 | bench ≥ 14 万/s |
-| **M2** | `hi-im-proxy` + `hi-im-api` | 2 周 | 单测 + 连 Hub |
-| **M3** | `hi-im-gateway` Gin + 群聊冒烟 | 2 周 | Demo 双窗口互通 |
-| **M4** | `hi-im-seqsvr` gRPC + usrsvr Gin 迁移 | 2 周 | 注册链路与必嗨一致 |
-| **M5** | msgsvr / chatroom 独立仓库迁移 | 3 周 | 群聊 + 聊天室 |
-| **M6** | Hub 分片 + Prometheus + K8s | 3 周 | 2 shard 压测 |
-| **M7** | Kafka + roomfanout | 2 周 | 峰值削峰对比数据 |
+> **hi-im-core 内部里程碑**（core-M1～M4）见独立仓库 `hi-im-core/doc/技术设计文档.md` §13；与下表 **生态 M1～M9** 勿混用。
 
-**合计约 17 周（~4 个月）**；业余减半时间。
+### 11.1 群聊为什么不能在 M3 做？
+
+必嗨群聊是 **双段 fan-out**，缺任何一段都无法「双窗口互通」：
+
+```text
+窗口 A ──WS──► gateway(NID=20001)
+                  │ AsyncSend GROUP-CHAT
+                  ▼ publish
+              msgsvr  ──查 Redis gid→{20001,20002,...}──► 对每个 nid AsyncSend（第一段 fan-out）
+                  │
+                  ▼ async_send(nid=20002)
+              gateway(NID=20002) ──ChatTab ImGroup──► 窗口 B（第二段 fan-out）
+```
+
+| 组件 | 群聊中的角色 | M3 时是否存在 |
+|------|--------------|---------------|
+| hi-im-core | Hub 路由 publish / async_send | M1 后有 |
+| hi-im-proxy | 嵌入 gateway / msgsvr | M2 后有 |
+| hi-im-gateway | WS + 第二段 fan-out | M3 可开始写，但 **不能单独验收群聊** |
+| **hi-im-msgsvr** | **第一段 gid→nid fan-out** | **M6 才有** |
+| hi-im-usrsvr | 建群、加群、ONLINE | M4 后有 |
+| hi-im-seqsvr | 注册分配 sid | M4 后有 |
+| Redis | gid→nid、成员表 | deploy 提供 |
+
+因此：**M3 只能验收 WS 接入 + Hub 单播/回声**；**群聊双窗口冒烟放在 M6**（msgsvr 就绪后）。
+
+### 11.2 仓库 × 里程碑对照（11 个全覆盖）
+
+| 仓库 | 首次纳入 | 说明 |
+|------|----------|------|
+| **hi-im-core** | M1 | Hub + bench |
+| **hi-im-api** | M2 | 48B 头、cmd 常量、proto |
+| **hi-im-proxy** | M2 | 纯 Go bus wire v1 |
+| **hi-im-deploy** | M3 | 最小 Compose；M8 扩展 K8s/Helm |
+| **hi-im-seqsvr** | M4 | gRPC 发号 |
+| **hi-im-usrsvr** | M4 | 注册、ONLINE、群成员 HTTP/gRPC |
+| **hi-im-gateway** | M5 | WS 长连接；M5 末可双窗口 **单播/回声**，非群聊 |
+| **hi-im-msgsvr** | M6 | 群聊 / 私聊第一段 fan-out |
+| **hi-im-chatroom** | M7 | 聊天室、rid→nid |
+| **hi-im-tasker** | M7 | TTL、在线统计（可与 chatroom 并行） |
+| **hi-im-roomfanout** | M9 | Kafka Consumer（档 C 削峰） |
+
+### 11.3 里程碑明细
+
+| 阶段 | 涉及仓库 | 内容 | 工期 | 验收（可执行） |
+|------|----------|------|------|----------------|
+| **M1** | hi-im-core | bus wire v1 + Hub 单 Shard + bench | 3 周 | `hi-im-bench` publish **≥ 14 万/s** |
+| **M2** | hi-im-api, hi-im-proxy | Proxy AUTH/SUB/AsyncSend + 单测 | 2 周 | Proxy 连 Hub，unicast 端到端 |
+| **M3** | hi-im-deploy | Compose：hub + proxy 测试桩 + Redis | 1 周 | **Hub 集成冒烟**（publish/unicast）；**不含群聊** |
+| **M4** | hi-im-seqsvr, hi-im-usrsvr | gRPC 发号 + Gin 注册/ONLINE | 2 周 | HTTP 注册拿 sid，ONLINE 写 Redis |
+| **M5** | hi-im-gateway | WS 接入 + 调 usrsvr | 2 周 | 浏览器连 WS、注册上线；可选 **双窗口 echo/单播** |
+| **M6** | hi-im-msgsvr | 群聊：建群/加群/GROUP-CHAT fan-out | 3 周 | **Demo 双窗口群聊互通** |
+| **M7** | hi-im-chatroom, hi-im-tasker | 聊天室 + 定时任务 | 2 周 | 进房发弹幕；tasker 跑通 |
+| **M8** | hi-im-core, hi-im-deploy | Hub 分片 + Prometheus + K8s | 3 周 | 2 shard 压测；Ingress 固定 wss |
+| **M9** | hi-im-roomfanout | Kafka 削峰 + consumer | 2 周 | 峰值对比数据（v0 vs v3 表） |
+
+**合计约 20 周（~5 个月）**；原 M1～M7 估 17 周偏乐观，主要补了 **M3 deploy**、**M5/M6 拆分** 与 **tasker/chatroom 独立 M7**。
+
+### 11.4 两条并行策略（省时间）
+
+若希望 **尽早看到浏览器 Demo**，可与 M2 并行从 beehive-im **只读对照**迁移，但验收仍按上表：
+
+| 策略 | 做法 | 风险 |
+|------|------|------|
+| **A. 严格净室** | 按 M1→M9 顺序写 hi-im 仓库 | 最慢，叙事最干净 |
+| **B. 混合对照** | M5 前 gateway 临时 **连 beehive 旧 msgsvr** 验证 WS 链 | 仅本地调试，**不算 hi-im 里程碑完成** |
+| **C. 推荐** | M5 只做 WS+注册；**M6 再切 hi-im-msgsvr**，一次验收群聊 | 工期清晰，不误导 |
+
+### 11.5 M3 / M5 / M6 验收对照（避免再混淆）
+
+| 里程碑 | 能做什么 | 不能做什么 |
+|--------|----------|------------|
+| **M3** | Hub + Proxy 压测、unicast 测试桩 | 群聊、WS 浏览器 |
+| **M5** | 双窗口 WS 在线、单播/回声 | **群聊 fan-out** |
+| **M6** | **双窗口群聊** | 聊天室峰值 Kafka |
 
 ---
 
@@ -475,8 +546,9 @@ hi-im-roomfanout Deployment (replicas ≈ Kafka partitions)
 | 风险 | 缓解 |
 |------|------|
 | rsvr 拼帧 bug | Wire 层单测 + 必嗨 pcap 对照 |
-| Hub 分片跨 shard 复杂 | M1 单 Shard 跑通再 M6 |
-| Go 迁移面大 | 先 gateway + usrsvr，再 msgsvr/chatroom |
+| Hub 分片跨 shard 复杂 | M1 单 Shard 跑通再 M8 |
+| Go 迁移面大 | 先 gateway + usrsvr（M4/M5），msgsvr 群聊 M6 再验收 |
+| 里程碑与仓库数不一致 | 见 §11.2 对照表，11 仓库均有归属 |
 | 性能回退 | 每 Milestone 跑 hi-im-bench 对比基线 JSON |
 
 ---
@@ -501,9 +573,9 @@ hi-im-roomfanout Deployment (replicas ≈ Kafka partitions)
 
 ## 15. 下一步建议
 
-1. 创建 **`hi-im-core`** 空仓库：`wire/header.hpp` + 协议单测（对照 `rtmq_mesg.h`）。
-2. 创建 **`hi-im-api`**：`comm` 包迁移 48B 头 + cmd 常量 + `seq/v1/*.proto`。
-3. 从 **`hi-im-proxy`** 开始 Go 侧，先实现 AUTH/SUB/AsyncSend 状态机。
-4. Compose 增加 **`hi-im-hub`** 服务，与旧 `frwder` 并存对照。
+1. 推进 **`hi-im-core`** M1：见 `hi-im-core/doc/M1-实施清单.md`。
+2. 创建 **`hi-im-api`** + **`hi-im-proxy`**（M2）。
+3. **`hi-im-deploy`** 最小 Compose 与 M3 对齐（hub + redis，**不要**把群聊写进 M3 验收）。
+4. **M6 之前**不要承诺「双窗口群聊 Demo」；M5 最多验收 WS + 注册 + 单播。
 
-如需，可继续拆 **M1 第一周任务清单（文件级）** 或 **`hi-im-api` 的 proto 全量定义**。
+如需，可继续拆 **M2 hi-im-proxy 状态机清单** 或 **`hi-im-api` proto 全量定义**。
