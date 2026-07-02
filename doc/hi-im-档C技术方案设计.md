@@ -2,7 +2,7 @@
 
 > **定位**：必嗨 IM 原栈作者不再维护；以 **hi-im** 为新项目名，**hi-im-core**（C++17/20）重写 RTMQ Hub 并做架构升级，Go 业务层独立仓库迭代，**Gin + gRPC** 替换 beego + Thrift。  
 > **档 C 范围**：Hub 分片 + 可观测 + io_uring 可选 + Kafka 削峰（方向二）+ K8s 部署。  
-> **版本**：v0.2-draft · 2026-06-25  
+> **版本**：v0.3-draft · 2026-06-25  
 > **许可证**：[Apache License 2.0](../LICENSE)
 
 ---
@@ -48,7 +48,7 @@
 | **对外 HTTP** | **beego** Router | 注册、iplist、管理接口 | **否**（新栈改 **Gin**） |
 
 ```text
-浏览器 ──WS──► websocket ──hi-im-proxy──► Hub FORWARD
+浏览器 ──WS──► gateway ──hi-im-hubclient──► Hub FORWARD
                               │
                               ▼ publish(cmd)
                          msgsvr / chatroom / usrsvr
@@ -79,7 +79,7 @@ flowchart TB
 
   subgraph edge["接入层 · Go 独立仓库"]
     ING[Ingress / 固定 wss URL]
-    WS[hi-im-gateway<br/>Gin 管理口 + WS 长连接<br/>hi-im-proxy]
+    WS[hi-im-gateway<br/>Gin + WS<br/>内嵌 hubclient]
   end
 
   subgraph core["hi-im-core · C++ 独立仓库"]
@@ -135,7 +135,7 @@ flowchart TB
 |------|---------------|------|
 | RTMQ Server + frwder | **hi-im-core Hub + bridge** | `hi-im-core` |
 | RTMQ C Proxy | hi-im-core C++ Proxy（listend 如需） | `hi-im-core` |
-| RTMQ Go Proxy | **hi-im-proxy** | 独立 Go module |
+| RTMQ Go Proxy（进程内客户端库） | **hi-im-hubclient** | 独立 Go module，**不独立部署** |
 | websocket | **hi-im-gateway** | 独立 |
 | usrsvr / msgsvr / chatroom | 各独立仓库 | `hi-im-*` |
 | seqsvr (Thrift) | **hi-im-seqsvr (gRPC)** | 独立 |
@@ -153,28 +153,121 @@ flowchart TB
 | 仓库 | 语言 | 职责 |
 |------|------|------|
 | **`hi-im-core`** | C++17/20 | Hub Server、bridge、C++ Proxy SDK、bench、Prometheus exporter |
-| **`hi-im-proxy`** | Go | 嵌入各 Go 进程的 Proxy；优先 **纯 Go 实现 bus wire v1** |
-| **`hi-im-api`** | Go + protobuf | 公共：`comm` 48B 头、IM cmd 常量、gRPC `.proto`、Gin 中间件、Redis 键规范 |
-| **`hi-im-gateway`** | Go + Gin | WebSocket 接入、ChatTab、hi-im-proxy、健康检查 |
+| **`hi-im-hubclient`** | Go | **Hub 客户端库**（必嗨 RTMQ Proxy 等价物）；编译进各 Go 进程；纯 Go 实现 bus wire v1 |
+| **`hi-im-api`** | Go + protobuf | **内部契约**：48B 头、IM cmd 常量、gRPC `.proto`、Redis 键规范；**不独立部署** |
+| **`hi-im-gateway`** | Go + Gin | WebSocket 接入、ChatTab、内嵌 hubclient、健康检查 |
 | **`hi-im-usrsvr`** | Go + Gin | 注册、鉴权、Redis 在线；gRPC 调 seqsvr |
 | **`hi-im-msgsvr`** | Go + Gin | 私聊、群聊 fan-out 第一段 |
 | **`hi-im-chatroom`** | Go + Gin | 聊天室、rid→nid；可选写 Kafka |
-| **`hi-im-roomfanout`** | Go | Kafka consumer → Redis rid→nid → hi-im async_send |
+| **`hi-im-roomfanout`** | Go | Kafka consumer → Redis rid→nid → hubclient AsyncSend |
 | **`hi-im-seqsvr`** | Go + gRPC | 替代 Thrift 的 SID/RID/SEQ |
 | **`hi-im-tasker`** | Go | TTL、统计 |
 | **`hi-im-deploy`** | YAML / Helm | K8s、Compose、Ingress |
 
-> Go module 路径建议：`github.com/<org>/hi-im-api`、`github.com/<org>/hi-im-proxy` 等，与仓库名一致。
+> Go module 路径建议：`github.com/<org>/hi-im-api`、`github.com/<org>/hi-im-hubclient` 等，与仓库名一致。
 
 ### 4.2 依赖关系
 
 ```text
-hi-im-api      ◄────  所有 Go 服务
-hi-im-proxy    ◄──  gateway / usrsvr / msgsvr / chatroom / roomfanout
-hi-im-core     ◄──  deploy 编排；Go 服务只连 Hub 地址，不链 C++ 编译
+hi-im-api        ◄────  所有 Go 服务 + hi-im-hubclient
+hi-im-hubclient  ◄──  gateway / usrsvr / msgsvr / chatroom / roomfanout
+hi-im-core       ◄──  deploy 编排；Go 服务运行时 TCP 连 Hub，不 CGO 编译 core
 ```
 
-**原则**：Go 服务 **不 CGO 依赖 hi-im-core**（除非后续性能优化）；`hi-im-proxy` **纯 Go 实现 bus wire v1**，与 C++ Hub 对接。
+**原则**：Go 服务 **不 CGO 依赖 hi-im-core**；`hi-im-hubclient` 纯 Go 连 Hub TCP，与 C++ Hub 对接。
+
+### 4.3 架构分层（L1～L4）
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│ L4 对外集成（未来可选，本档 C 不实现）                          │
+│     hi-im-sdk-go / 开放 HTTP·gRPC · 移动端 SDK                 │
+│     「我要 IM 能力」→ 调 usrsvr/msgsvr 或 WS，不直连 Hub       │
+├─────────────────────────────────────────────────────────────┤
+│ L3 业务服务（独立部署 · 各自 Git 仓库）                         │
+│     gateway / usrsvr / msgsvr / chatroom / seqsvr / tasker …  │
+│     群聊 fan-out、注册、聊天室、发号                           │
+├─────────────────────────────────────────────────────────────┤
+│ L2 内部 Go 库（不独立部署 · go get 依赖）                       │
+│     hi-im-api（契约） + hi-im-hubclient（Hub 客户端）           │
+│     仅 L3 进程编译进去；**不是**对外「接入 SDK」                │
+├─────────────────────────────────────────────────────────────┤
+│ L1 基础设施（独立部署 · C++）                                   │
+│     hi-im-core（hi-im-hub） publish / async_send / SUB       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+| 层级 | 仓库 | 独立部署？ | 谁用 |
+|------|------|------------|------|
+| L1 | hi-im-core | ✅ Pod/进程 | 全栈运行时 |
+| L2 | hi-im-api | ❌ Go module | 所有 Go 服务 + hubclient |
+| L2 | hi-im-hubclient | ❌ Go module | gateway / msgsvr / chatroom / usrsvr / roomfanout |
+| L3 | hi-im-gateway 等 | ✅ 各服务 Pod | 平台自身 |
+| L4 | （未来）hi-im-sdk-go | ❌ 库，但 **面向外部业务** | 二开 / SaaS 集成方 |
+
+> **命名约定**：必嗨文献中的 **RTMQ Proxy** = 本方案的 **hi-im-hubclient**（Hub 客户端），**不是** GoF 设计模式里的 Proxy，也 **不是** 给外部业务用的 hi-im-sdk-go。
+
+### 4.4 独立部署 vs 独立仓库
+
+**11 个 Git 仓库 ≠ 11 个运行时 Pod。**
+
+| 类型 | 仓库 | 运行时 |
+|------|------|--------|
+| **要部署** | hi-im-core | `hi-im-hub` × shard |
+| **要部署** | hi-im-gateway, usrsvr, msgsvr, chatroom, seqsvr, tasker, roomfanout | 各 1～N 副本 |
+| **只依赖** | hi-im-api, hi-im-hubclient | 编译进上述 Go 二进制 |
+| **只编排** | hi-im-deploy | Compose / Helm YAML |
+
+最小 **群聊可跑**（生态 M6）需起的进程：
+
+```text
+hi-im-hub + Redis + hi-im-seqsvr + hi-im-usrsvr + hi-im-msgsvr + hi-im-gateway
+（每个 Go 镜像内已编入 hi-im-api + hi-im-hubclient）
+```
+
+### 4.5 hi-im-api 与 hi-im-hubclient 分工
+
+对应必嗨 **`lib/comm` + `lib/mesg`** 与 **`lib/rtmq`**，但职责拆开：
+
+| | **hi-im-api** | **hi-im-hubclient** |
+|--|---------------|---------------------|
+| **是什么** | 协议字典、数据结构、proto | 连 Hub 的 TCP 客户端库 |
+| **典型内容** | `CMD_*`、`MesgHeader` 48B、Redis key、gRPC proto | AUTH、SUB、AsyncSend、RegisterHandler、重连、保活 |
+| **必嗨等价** | `lib/comm`、`lib/mesg` | `lib/rtmq`（Go 部分） |
+| **变更频率** | 有 **新 cmd / 新 proto / 新 key** 时 | **很少**（除非 bus wire v2、多 shard 连接） |
+| **发版** | semver，谁用新 cmd 谁 `go get` 升 | 稳定版，与业务发版解耦 |
+
+**hubclient 应保持很薄**，不包含群逻辑、fan-out、Redis：
+
+```go
+// hubclient 只提供传输原语（示意）
+hubclient.AsyncSend(cmd, destNid, payload []byte)
+hubclient.RegisterHandler(cmd, func(payload []byte))
+```
+
+业务在 **msgsvr / chatroom** 里：`import hi-im-api` 拼包 → `hubclient.AsyncSend`。
+
+### 4.6 业务迭代时「谁改什么」（变更归属）
+
+| 场景 | hi-im-api | hi-im-hubclient | msgsvr/chatroom/… | hi-im-core |
+|------|-----------|-----------------|-------------------|------------|
+| 新业务 cmd（如房间礼物） | ✅ 加 CMD + proto | ❌ 通常不改 | ✅ handler + 业务 | ❌ |
+| gateway SUB 新 cmd | ✅ 常量 | ❌（配置 SUB 列表） | ✅ | ❌ |
+| 群聊 fan-out 策略调整 | 可能 Redis key | ❌ | ✅ | ❌ |
+| bus wire **v2** | ✅ | ✅ | 随 api 升 | ✅ |
+| 客户端连多 Hub shard | 可能配置 struct | ✅ | 配置 | ✅ |
+| chatroom 加 Kafka 削峰 | ❌ | ❌ | ✅ + roomfanout | ❌ |
+
+**结论**：usrsvr / msgsvr / chatroom **各自迭代业务**，不应迫使 hubclient 跟着改；若每次加功能都要改 hubclient，说明 **业务代码渗进了传输层**，需回退边界。
+
+**独立仓库仍合理**：api 与 hubclient 都是 **`go get` 依赖**，不增加 Pod；分开便于 **api 常发版、hubclient 少发版**。
+
+### 4.7 与「对外 SDK」的边界
+
+| 名称 | 定位 | 本档 C |
+|------|------|--------|
+| **hi-im-api + hi-im-hubclient** | IM **团队内部**写 L3 服务用 | ✅ M2 起 |
+| **hi-im-sdk-go**（未来） | 外部业务「接入 IM 能力」：`SendGroupMessage` 等，走 HTTP/gRPC/WS | ❌ 不做；不与此二者混名 |
 
 ---
 
@@ -194,7 +287,7 @@ hi-im-core     ◄──  deploy 编排；Go 服务只连 Hub 地址，不链 C+
 
 | 平面 | 默认端口 | 连接方 |
 |------|----------|--------|
-| **FORWARD** | 28888 | gateway、listend（Proxy） |
+| **FORWARD** | 28888 | gateway、listend（hubclient） |
 | **BACKEND** | 28889 | usrsvr、msgsvr、chatroom、roomfanout |
 
 **bridge** 模块（替代 `frwd_mesg.c`）：
@@ -229,7 +322,7 @@ Shard-1: NID ∈ [20101, 20200]  →  hi-im-hub-1:28888/28889
 | 角色 | 规则 |
 |------|------|
 | **gateway** | 启动时 `--shard-id=0 --nid=20001`；只连 **本 shard** Hub |
-| **msgsvr / chatroom** | 可连 **任意 shard BACKEND**（全 shard 相同 BACKEND 路由表同步，或 proxy 配置 multi-backend） |
+| **msgsvr / chatroom** | 可连 **任意 shard BACKEND**（multi-backend 配置） |
 | **async_send(nid)** | Hub 若 nid 不属于本 shard，**转发至 owner shard**（Hub 间 gRPC 或 TCP 内部链路，Phase 2） |
 
 **Phase 1（简化）**：单 Shard 跑通 + bench 对齐；**Phase 2** 多 Shard + 跨 shard 转发。
@@ -248,11 +341,11 @@ Status Proxy::Publish(uint32_t cmd, const uint8_t* data, size_t len); // Server 
 void Proxy::RegisterHandler(uint32_t cmd, MessageHandler handler);
 ```
 
-Go 侧 `hi-im-proxy` 提供等价 API：
+Go 侧 **`hi-im-hubclient`** 提供等价 API（包名示例 `hubclient`）：
 
 ```go
-func (p *Proxy) AsyncSend(cmd, destNid uint32, payload []byte) error
-func (p *Proxy) RegisterHandler(cmd uint32, h Handler)
+func (c *Client) AsyncSend(cmd, destNid uint32, payload []byte) error
+func (c *Client) RegisterHandler(cmd uint32, h Handler)
 ```
 
 ### 5.6 可观测
@@ -330,7 +423,7 @@ service SeqService {
 
 ---
 
-## 7. Go 业务服务（Gin + hi-im-proxy）
+## 7. Go 业务服务（Gin + hi-im-hubclient）
 
 ### 7.1 框架迁移
 
@@ -350,10 +443,10 @@ hi-im-gateway/
 ├── internal/
 │   ├── ws/              # WebSocket 读写的协程
 │   ├── chattab/         # rid/gid → cid（从 beehive 迁移）
-│   ├── bus/             # 封装 hi-im-proxy
+│   ├── bus/             # 封装 hi-im-hubclient
 │   └── http/            # Gin：/health, /metrics, /debug
 ├── config/
-└── go.mod               # require hi-im-api, hi-im-proxy
+└── go.mod               # require hi-im-api, hi-im-hubclient
 ```
 
 ### 7.3 连接配置（环境变量）
@@ -393,7 +486,7 @@ HIIM_AUTH_PASS=***
 ```text
 Stage 0  文档 + hi-im-bench 对齐 14 万/s
 Stage 1  hi-im-hub 单 Shard 替换 compose 里 frwder（Hub 层）
-Stage 2  hi-im-proxy 连 Hub：publish / unicast 集成测试（测试桩，非群聊）
+Stage 2  hi-im-hubclient 连 Hub：publish / unicast 集成测试（测试桩，非群聊）
 Stage 3  hi-im-seqsvr + usrsvr：注册 / ONLINE
 Stage 4  hi-im-gateway：WS 接入 + 连 usrsvr
 Stage 5  hi-im-msgsvr：群聊 gid→nid 第一段 fan-out → 双窗口群聊冒烟
@@ -402,7 +495,7 @@ Stage 7  Hub 分片 + hi-im-deploy K8s
 Stage 8  hi-im-roomfanout + Kafka
 ```
 
-> **注意**：「双窗口群聊互通」至少依赖 **core + proxy + api + deploy + gateway + usrsvr + msgsvr + seqsvr + Redis**，不可能在仅有 gateway 的 Stage 4 之前完成。
+> **注意**：「双窗口群聊互通」至少依赖 **core + hubclient + api + deploy + gateway + usrsvr + msgsvr + seqsvr + Redis**，不可能在仅有 gateway 的 Stage 4 之前完成。
 
 ### 8.3 兼容期双跑（可选）
 
@@ -470,8 +563,8 @@ hi-im-roomfanout Deployment (replicas ≈ Kafka partitions)
 | 组件 | 群聊中的角色 | M3 时是否存在 |
 |------|--------------|---------------|
 | hi-im-core | Hub 路由 publish / async_send | M1 后有 |
-| hi-im-proxy | 嵌入 gateway / msgsvr | M2 后有 |
-| hi-im-gateway | WS + 第二段 fan-out | M3 可开始写，但 **不能单独验收群聊** |
+| hi-im-hubclient | 嵌入 gateway / msgsvr（L2 库） | M2 后有 |
+| hi-im-gateway | WS + 第二段 fan-out | **M5** 起；**不能单独验收群聊** |
 | **hi-im-msgsvr** | **第一段 gid→nid fan-out** | **M6 才有** |
 | hi-im-usrsvr | 建群、加群、ONLINE | M4 后有 |
 | hi-im-seqsvr | 注册分配 sid | M4 后有 |
@@ -485,7 +578,7 @@ hi-im-roomfanout Deployment (replicas ≈ Kafka partitions)
 |------|----------|------|
 | **hi-im-core** | M1 | Hub + bench |
 | **hi-im-api** | M2 | 48B 头、cmd 常量、proto |
-| **hi-im-proxy** | M2 | 纯 Go bus wire v1 |
+| **hi-im-hubclient** | M2 | Hub 客户端：AUTH/SUB/AsyncSend |
 | **hi-im-deploy** | M3 | 最小 Compose；M8 扩展 K8s/Helm |
 | **hi-im-seqsvr** | M4 | gRPC 发号 |
 | **hi-im-usrsvr** | M4 | 注册、ONLINE、群成员 HTTP/gRPC |
@@ -500,8 +593,8 @@ hi-im-roomfanout Deployment (replicas ≈ Kafka partitions)
 | 阶段 | 涉及仓库 | 内容 | 工期 | 验收（可执行） |
 |------|----------|------|------|----------------|
 | **M1** | hi-im-core | bus wire v1 + Hub 单 Shard + bench | 3 周 | `hi-im-bench` publish **≥ 14 万/s** |
-| **M2** | hi-im-api, hi-im-proxy | Proxy AUTH/SUB/AsyncSend + 单测 | 2 周 | Proxy 连 Hub，unicast 端到端 |
-| **M3** | hi-im-deploy | Compose：hub + proxy 测试桩 + Redis | 1 周 | **Hub 集成冒烟**（publish/unicast）；**不含群聊** |
+| **M2** | hi-im-api, hi-im-hubclient | 契约 + Hub 客户端单测 | 2 周 | hubclient 连 Hub，unicast 端到端 |
+| **M3** | hi-im-deploy | Compose：hub + hubclient 测试桩 + Redis | 1 周 | **Hub 集成冒烟**（publish/unicast）；**不含群聊** |
 | **M4** | hi-im-seqsvr, hi-im-usrsvr | gRPC 发号 + Gin 注册/ONLINE | 2 周 | HTTP 注册拿 sid，ONLINE 写 Redis |
 | **M5** | hi-im-gateway | WS 接入 + 调 usrsvr | 2 周 | 浏览器连 WS、注册上线；可选 **双窗口 echo/单播** |
 | **M6** | hi-im-msgsvr | 群聊：建群/加群/GROUP-CHAT fan-out | 3 周 | **Demo 双窗口群聊互通** |
@@ -525,7 +618,7 @@ hi-im-roomfanout Deployment (replicas ≈ Kafka partitions)
 
 | 里程碑 | 能做什么 | 不能做什么 |
 |--------|----------|------------|
-| **M3** | Hub + Proxy 压测、unicast 测试桩 | 群聊、WS 浏览器 |
+| **M3** | Hub + hubclient 压测、unicast 测试桩 | 群聊、WS 浏览器 |
 | **M5** | 双窗口 WS 在线、单播/回声 | **群聊 fan-out** |
 | **M6** | **双窗口群聊** | 聊天室峰值 Kafka |
 
@@ -537,18 +630,20 @@ hi-im-roomfanout Deployment (replicas ≈ Kafka partitions)
 |----|------|------|
 | D1 | 热路径不用 gRPC | 延迟与吞吐；必嗨原设计正确 |
 | D2 | seqsvr Thrift → gRPC | 统一栈、易代码生成、你简历叙事 |
-| D3 | Go Proxy 纯 Go 实现 v1 协议 | 避免 CGO 交叉编译与部署复杂度 |
+| D3 | **hi-im-hubclient** 纯 Go、与 **hi-im-api** 分仓 | 传输层稳定；协议常改只 bump api；避免 CGO |
 | D4 | hi-im-core 独立 C++ 仓库 | 与 Go 服务解耦、便于 C++ 第二曲线 |
 | D5 | 生态统一命名 **hi-im** | 仓库、镜像、K8s 资源前缀一致 |
 | D6 | listend 延后 | 浏览器 Demo 以 WS 为主 |
 | D7 | 开源协议 **Apache 2.0** | 商业友好、与 gRPC/Protobuf/K8s 生态一致；各 hi-im 独立仓库根目录携带相同 LICENSE |
+| D8 | 不用 **hi-im-sdk-go** 指代 api+hubclient | 对外 SDK 与未来内部契约分层，避免集成方误用 Hub TCP |
 
 | 风险 | 缓解 |
 |------|------|
 | rsvr 拼帧 bug | Wire 层单测 + 必嗨 pcap 对照 |
 | Hub 分片跨 shard 复杂 | M1 单 Shard 跑通再 M8 |
 | Go 迁移面大 | 先 gateway + usrsvr（M4/M5），msgsvr 群聊 M6 再验收 |
-| 里程碑与仓库数不一致 | 见 §11.2 对照表，11 仓库均有归属 |
+| 里程碑与仓库数不一致 | 见 §4.4、§11.2；11 仓库均有归属 |
+| hubclient 被业务拖改 | 见 §4.6 变更归属表；fan-out 只放 L3 |
 | 性能回退 | 每 Milestone 跑 hi-im-bench 对比基线 JSON |
 
 ---
@@ -565,7 +660,7 @@ hi-im-roomfanout Deployment (replicas ≈ Kafka partitions)
 |----|------|
 | **协议** | [Apache License 2.0](../LICENSE) |
 | **版权** | Copyright 2026 Sun Chao |
-| **适用范围** | hi-im 生态新代码（hi-im-core、hi-im-proxy、各 Go 服务等） |
+| **适用范围** | hi-im 生态新代码（hi-im-core、hi-im-hubclient、各 Go 服务等） |
 | **NOTICE** | 见仓库根目录 [NOTICE](../NOTICE)；必嗨遗留 C 源码保留原文件头版权，hi-im-core 为净室重写 |
 | **拆仓要求** | 每个独立 GitHub 仓库根目录复制 `LICENSE` + `NOTICE`；Go 源文件头可选加 SPDX：`SPDX-License-Identifier: Apache-2.0` |
 
@@ -574,8 +669,8 @@ hi-im-roomfanout Deployment (replicas ≈ Kafka partitions)
 ## 15. 下一步建议
 
 1. 推进 **`hi-im-core`** M1：见 `hi-im-core/doc/M1-实施清单.md`。
-2. 创建 **`hi-im-api`** + **`hi-im-proxy`**（M2）。
+2. 创建 **`hi-im-api`** + **`hi-im-hubclient`**（M2，见 §4.5～§4.6）。
 3. **`hi-im-deploy`** 最小 Compose 与 M3 对齐（hub + redis，**不要**把群聊写进 M3 验收）。
 4. **M6 之前**不要承诺「双窗口群聊 Demo」；M5 最多验收 WS + 注册 + 单播。
 
-如需，可继续拆 **M2 hi-im-proxy 状态机清单** 或 **`hi-im-api` proto 全量定义**。
+如需，可继续拆 **M2 hi-im-hubclient 状态机清单** 或 **`hi-im-api` proto 全量定义**。
